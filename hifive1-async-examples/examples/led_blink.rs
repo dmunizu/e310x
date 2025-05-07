@@ -17,6 +17,7 @@ use hifive1::{
     },
     pin, sprintln,
 };
+use static_cell::StaticCell;
 extern crate panic_halt;
 
 #[embassy_executor::main]
