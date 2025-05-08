@@ -32,7 +32,7 @@ async fn main(_spawner: Spawner) -> ! {
 
     //Blinking LED
     let pin = pin!(pins, led_blue);
-    let mut led = pin.into_inverted_output();
+    let led = pin.into_inverted_output();
 
     // Configure UART for stdout
     hifive1::stdout::configure(
