@@ -44,7 +44,7 @@ async fn main(_spawner: Spawner) -> ! {
     );
 
     // Get Mtimer
-    let mtimer = unsafe { Clint::steal() }.mtimer();
+    let mtimer = dr.clint.mtimer();
 
     // Configure MTIMER interrupt
     mtimer.disable();
