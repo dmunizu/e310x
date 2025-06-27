@@ -181,7 +181,7 @@ macro_rules! gpio {
             use core::convert::Infallible;
 
             use embedded_hal::digital::{InputPin, OutputPin, StatefulOutputPin, ErrorType};
-            use e310x::{$GPIOX, Plic, interrupt::{ExternalInterrupt, Priority,},};
+            use e310x::{$GPIOX, Plic, interrupt::{ExternalInterrupt, Priority}};
             use super::{Unknown, IOF0, IOF1, Drive, Floating, GpioExt, Input, Invert,
                         NoInvert, Output, PullUp, Regular, PinIndex, PeripheralAccess, EventType};
 
@@ -214,25 +214,27 @@ macro_rules! gpio {
                 fn enable_interrupts(event: EventType) {
                     let p = Self::peripheral();
 
-                    unsafe {
-                        match event {
-                            EventType::High => {
-                                p.high_ie().write(|w| w.bits(0xFFFFFFFF));
-                            }
-                            EventType::Low => {
-                                p.low_ie().write(|w| w.bits(0xFFFFFFFF));
-                            }
-                            EventType::Rise => {
+                    match event {
+                        EventType::High => {
+                            unsafe { p.high_ie().write(|w| w.bits(0xFFFFFFFF)) };
+                        }
+                        EventType::Low => {
+                            unsafe{ p.low_ie().write(|w| w.bits(0xFFFFFFFF)) };
+                        }
+                        EventType::Rise => {
+                            unsafe{ p.rise_ie().write(|w| w.bits(0xFFFFFFFF)) };
+                        }
+                        EventType::Fall => {
+                            unsafe{ p.fall_ie().write(|w| w.bits(0xFFFFFFFF)) };
+                        }
+                        EventType::BothEdges => {
+                            unsafe {
                                 p.rise_ie().write(|w| w.bits(0xFFFFFFFF));
-                            }
-                            EventType::Fall => {
                                 p.fall_ie().write(|w| w.bits(0xFFFFFFFF));
                             }
-                            EventType::BothEdges => {
-                                p.rise_ie().write(|w| w.bits(0xFFFFFFFF));
-                                p.fall_ie().write(|w| w.bits(0xFFFFFFFF));
-                            }
-                            EventType::All => {
+                        }
+                        EventType::All => {
+                            unsafe {
                                 p.high_ie().write(|w| w.bits(0xFFFFFFFF));
                                 p.low_ie().write(|w| w.bits(0xFFFFFFFF));
                                 p.rise_ie().write(|w| w.bits(0xFFFFFFFF));
@@ -245,25 +247,27 @@ macro_rules! gpio {
                 fn disable_interrupts(event: EventType) {
                     let p = Self::peripheral();
 
-                    unsafe {
-                        match event {
-                            EventType::High => {
-                                p.high_ie().write(|w| w.bits(0x00000000));
-                            }
-                            EventType::Low => {
-                                p.low_ie().write(|w| w.bits(0x00000000));
-                            }
-                            EventType::Rise => {
+                    match event {
+                        EventType::High => {
+                            unsafe { p.high_ie().write(|w| w.bits(0x00000000)); }
+                        }
+                        EventType::Low => {
+                            unsafe { p.low_ie().write(|w| w.bits(0x00000000)); }
+                        }
+                        EventType::Rise => {
+                            unsafe { p.rise_ie().write(|w| w.bits(0x00000000)); }
+                        }
+                        EventType::Fall => {
+                            unsafe { p.fall_ie().write(|w| w.bits(0x00000000)); }
+                        }
+                        EventType::BothEdges => {
+                            unsafe {
                                 p.rise_ie().write(|w| w.bits(0x00000000));
-                            }
-                            EventType::Fall => {
                                 p.fall_ie().write(|w| w.bits(0x00000000));
                             }
-                            EventType::BothEdges => {
-                                p.rise_ie().write(|w| w.bits(0x00000000));
-                                p.fall_ie().write(|w| w.bits(0x00000000));
-                            }
-                            EventType::All => {
+                        }
+                        EventType::All => {
+                            unsafe {
                                 p.high_ie().write(|w| w.bits(0x00000000));
                                 p.low_ie().write(|w| w.bits(0x00000000));
                                 p.rise_ie().write(|w| w.bits(0x00000000));
@@ -276,25 +280,27 @@ macro_rules! gpio {
                 fn clear_pending_interrupts(event: EventType) {
                     let p = Self::peripheral();
 
-                    unsafe {
-                        match event {
-                            EventType::High => {
-                                p.high_ip().write(|w| w.bits(0xFFFFFFFF));
-                            }
-                            EventType::Low => {
-                                p.low_ip().write(|w| w.bits(0xFFFFFFFF));
-                            }
-                            EventType::Rise => {
+                    match event {
+                        EventType::High => {
+                            unsafe { p.high_ip().write(|w| w.bits(0xFFFFFFFF)); }
+                        }
+                        EventType::Low => {
+                            unsafe { p.low_ip().write(|w| w.bits(0xFFFFFFFF)); }
+                        }
+                        EventType::Rise => {
+                            unsafe { p.rise_ip().write(|w| w.bits(0xFFFFFFFF)); }
+                        }
+                        EventType::Fall => {
+                            unsafe { p.fall_ip().write(|w| w.bits(0xFFFFFFFF)); }
+                        }
+                        EventType::BothEdges => {
+                            unsafe {
                                 p.rise_ip().write(|w| w.bits(0xFFFFFFFF));
-                            }
-                            EventType::Fall => {
                                 p.fall_ip().write(|w| w.bits(0xFFFFFFFF));
                             }
-                            EventType::BothEdges => {
-                                p.rise_ip().write(|w| w.bits(0xFFFFFFFF));
-                                p.fall_ip().write(|w| w.bits(0xFFFFFFFF));
-                            }
-                            EventType::All => {
+                        }
+                        EventType::All => {
+                            unsafe {
                                 p.high_ip().write(|w| w.bits(0xFFFFFFFF));
                                 p.low_ip().write(|w| w.bits(0xFFFFFFFF));
                                 p.rise_ip().write(|w| w.bits(0xFFFFFFFF));
@@ -404,47 +410,51 @@ macro_rules! gpio {
                     }
 
                     /// Enables the external interrupt source for the pin.
+                    ///
                     /// # Note
                     ///
                     /// This function enables the external interrupt source in the PLIC,
                     /// but does not enable the PLIC peripheral itself. To enable the plic peripheral
                     /// you must call `Plic::enable()`.
+                    ///
                     /// # Safety
                     ///
                     /// Enabling an interrupt source can break mask-based critical sections.
                     pub unsafe fn enable_exti(&self) {
-                        let ctx = unsafe{Plic::steal()}.ctx0();
+                        let ctx = unsafe{ Plic::steal() }.ctx0();
                         ctx.enables().enable(ExternalInterrupt::$handle);
                     }
 
                     /// Disables the external interrupt source for the pin.
                     pub fn disable_exti(&self) {
-                        let ctx = unsafe{Plic::steal()}.ctx0();
+                        let ctx = unsafe{ Plic::steal() }.ctx0();
                         ctx.enables().disable(ExternalInterrupt::$handle);
                     }
 
                     /// Returns if the external interrupt source for the pin is enabled.
                     pub fn is_exti_enabled(&self) -> bool {
-                        let ctx = unsafe{Plic::steal()}.ctx0();
+                        let ctx = unsafe{ Plic::steal() }.ctx0();
                         ctx.enables().is_enabled(ExternalInterrupt::$handle)
                     }
 
                     /// Sets the external interrupt source priority.
+                    ///
                     ///  # Safety
                     ///
                     ///  Changing the priority level can break priority-based critical sections.
                     pub unsafe fn set_exti_priority(&self, priority: Priority) {
-                        let priorities = unsafe{Plic::steal()}.priorities();
+                        let priorities = unsafe{ Plic::steal() }.priorities();
                         priorities.set_priority(ExternalInterrupt::$handle, priority);
                     }
 
                     /// Returns the external interrupt source priority.
                     pub fn get_exti_priority(&self) -> Priority {
-                        let priorities = unsafe{Plic::steal()}.priorities();
+                        let priorities = unsafe{ Plic::steal() }.priorities();
                         priorities.get_priority(ExternalInterrupt::$handle)
                     }
 
                     /// Enables the selected interrupts for the pin in the interrupt enable registers
+                    ///
                     /// # Note
                     ///
                     ///  This function does not enable the interrupt in the PLIC, it only sets the
@@ -455,17 +465,27 @@ macro_rules! gpio {
                         let gpio_block = $GPIOX::peripheral();
                         let pin_mask = 1 << $i;
 
-                        unsafe{
-                            match event {
-                                EventType::High => {gpio_block.high_ie().modify(|r, w| w.bits(r.bits() | pin_mask));}
-                                EventType::Low => {gpio_block.low_ie().modify(|r, w| w.bits(r.bits() | pin_mask));}
-                                EventType::Rise => {gpio_block.rise_ie().modify(|r, w| w.bits(r.bits() | pin_mask));}
-                                EventType::Fall => {gpio_block.fall_ie().modify(|r, w| w.bits(r.bits() | pin_mask));}
-                                EventType::BothEdges => {
+                        match event {
+                            EventType::High => {
+                                unsafe { gpio_block.high_ie().modify(|r, w| w.bits(r.bits() | pin_mask)); }
+                            }
+                            EventType::Low => {
+                                unsafe { gpio_block.low_ie().modify(|r, w| w.bits(r.bits() | pin_mask)); }
+                            }
+                            EventType::Rise => {
+                                unsafe { gpio_block.rise_ie().modify(|r, w| w.bits(r.bits() | pin_mask)); }
+                            }
+                            EventType::Fall => {
+                                unsafe { gpio_block.fall_ie().modify(|r, w| w.bits(r.bits() | pin_mask)); }
+                            }
+                            EventType::BothEdges => {
+                                unsafe {
                                     gpio_block.rise_ie().modify(|r, w| w.bits(r.bits() | pin_mask));
                                     gpio_block.fall_ie().modify(|r, w| w.bits(r.bits() | pin_mask));
                                 }
-                                EventType::All => {
+                            }
+                            EventType::All => {
+                                unsafe {
                                     gpio_block.high_ie().modify(|r, w| w.bits(r.bits() | pin_mask));
                                     gpio_block.low_ie().modify(|r, w| w.bits(r.bits() | pin_mask));
                                     gpio_block.rise_ie().modify(|r, w| w.bits(r.bits() | pin_mask));
@@ -480,17 +500,27 @@ macro_rules! gpio {
                         let gpio_block = $GPIOX::peripheral();
                         let pin_mask = 1 << $i;
 
-                        unsafe{
-                            match event {
-                                EventType::High => {gpio_block.high_ie().modify(|r, w| w.bits(r.bits() & !pin_mask));}
-                                EventType::Low => {gpio_block.low_ie().modify(|r, w| w.bits(r.bits() & !pin_mask));}
-                                EventType::Rise => {gpio_block.rise_ie().modify(|r, w| w.bits(r.bits() & !pin_mask));}
-                                EventType::Fall => {gpio_block.fall_ie().modify(|r, w| w.bits(r.bits() & !pin_mask));}
-                                EventType::BothEdges => {
+                        match event {
+                            EventType::High => {
+                                unsafe { gpio_block.high_ie().modify(|r, w| w.bits(r.bits() & !pin_mask)); }
+                            }
+                            EventType::Low => {
+                                unsafe { gpio_block.low_ie().modify(|r, w| w.bits(r.bits() & !pin_mask)); }
+                            }
+                            EventType::Rise => {
+                                unsafe { gpio_block.rise_ie().modify(|r, w| w.bits(r.bits() & !pin_mask)); }
+                            }
+                            EventType::Fall => {
+                                unsafe { gpio_block.fall_ie().modify(|r, w| w.bits(r.bits() & !pin_mask)); }
+                            }
+                            EventType::BothEdges => {
+                                unsafe {
                                     gpio_block.rise_ie().modify(|r, w| w.bits(r.bits() & !pin_mask));
                                     gpio_block.fall_ie().modify(|r, w| w.bits(r.bits() & !pin_mask));
                                 }
-                                EventType::All => {
+                            }
+                            EventType::All => {
+                                unsafe {
                                     gpio_block.high_ie().modify(|r, w| w.bits(r.bits() & !pin_mask));
                                     gpio_block.low_ie().modify(|r, w| w.bits(r.bits() & !pin_mask));
                                     gpio_block.rise_ie().modify(|r, w| w.bits(r.bits() & !pin_mask));
@@ -505,27 +535,38 @@ macro_rules! gpio {
                         let gpio_block = $GPIOX::peripheral();
                         let pin_mask = 1 << $i;
 
-                        unsafe{
-                            match event {
-                                EventType::High => {gpio_block.high_ip().modify(|r, w| w.bits(r.bits() | pin_mask));}
-                                EventType::Low => {gpio_block.low_ip().modify(|r, w| w.bits(r.bits() | pin_mask));}
-                                EventType::Rise => {gpio_block.rise_ip().modify(|r, w| w.bits(r.bits() | pin_mask));}
-                                EventType::Fall => {gpio_block.fall_ip().modify(|r, w| w.bits(r.bits() | pin_mask));}
-                                EventType::BothEdges => {
-                                    gpio_block.rise_ip().modify(|r, w| w.bits(r.bits() | pin_mask));
-                                    gpio_block.fall_ip().modify(|r, w| w.bits(r.bits() | pin_mask));
+                        match event {
+                            EventType::High => {
+                                unsafe { gpio_block.high_ip().write(|w| w.bits(pin_mask)); }
+                            }
+                            EventType::Low => {
+                                unsafe { gpio_block.low_ip().write(|w| w.bits(pin_mask)); }
+                            }
+                            EventType::Rise => {
+                                unsafe { gpio_block.rise_ip().write(|w| w.bits(pin_mask)); }
+                            }
+                            EventType::Fall => {
+                                unsafe { gpio_block.fall_ip().write(|w| w.bits(pin_mask)); }
+                            }
+                            EventType::BothEdges => {
+                                unsafe {
+                                    gpio_block.rise_ip().write(|w| w.bits(pin_mask));
+                                    gpio_block.fall_ip().write(|w| w.bits(pin_mask));
                                 }
-                                EventType::All => {
-                                    gpio_block.high_ip().modify(|r, w| w.bits(r.bits() | pin_mask));
-                                    gpio_block.low_ip().modify(|r, w| w.bits(r.bits() | pin_mask));
-                                    gpio_block.rise_ip().modify(|r, w| w.bits(r.bits() | pin_mask));
-                                    gpio_block.fall_ip().modify(|r, w| w.bits(r.bits() | pin_mask));
+                            }
+                            EventType::All => {
+                                unsafe {
+                                    gpio_block.high_ip().write(|w| w.bits(pin_mask));
+                                    gpio_block.low_ip().write(|w| w.bits(pin_mask));
+                                    gpio_block.rise_ip().write(|w| w.bits(pin_mask));
+                                    gpio_block.fall_ip().write(|w| w.bits(pin_mask));
                                 }
                             }
                         }
                     }
 
                     /// Returns true if the interrupt for the pin is enabled.
+                    ///
                     ///  # Note
                     ///
                     ///  Both Edges will return true if either the
@@ -555,6 +596,7 @@ macro_rules! gpio {
                     }
 
                     /// Returns true if the interrupt for the pin is pending.
+                    ///
                     ///  # Note
                     ///
                     ///  Both Edges will return true if either the

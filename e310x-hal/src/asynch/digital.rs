@@ -84,10 +84,10 @@ macro_rules! gpio_async {
 
             // Clear pending pin interrupts
             unsafe{
-                gpio_block.high_ip().modify(|r, w| w.bits(r.bits() | pin_mask));
-                gpio_block.low_ip().modify(|r, w| w.bits(r.bits() | pin_mask));
-                gpio_block.rise_ip().modify(|r, w| w.bits(r.bits() | pin_mask));
-                gpio_block.fall_ip().modify(|r, w| w.bits(r.bits() | pin_mask));
+                gpio_block.high_ip().write(|w| w.bits(pin_mask));
+                gpio_block.low_ip().write(|w| w.bits(pin_mask));
+                gpio_block.rise_ip().write(|w| w.bits(pin_mask));
+                gpio_block.fall_ip().write(|w| w.bits(pin_mask));
             }
         }
 
@@ -113,14 +113,13 @@ macro_rules! gpio_async {
                     }
 
                     // Enable the high interrupt for the pin.
-                    let gpio_block = unsafe { $GPIOX::steal() };
-                    gpio_block.high_ie().write(|w| w.$pxi().set_bit());
+                    self.enable_interrupt(EventType::High);
 
                     // Await until an interrupt indicates that the pin has transitioned high.
                     poll_fn(|cx| {
                         let result = critical_section::with(|cs| {
                             let pinwaker = &mut PIN_WAKERS.borrow_ref_mut(cs)[$i];
-                            if gpio_block.high_ie().read().$pxi().bit_is_clear() {
+                            if !self.is_interrupt_enabled(EventType::High) {
                                 Poll::Ready(Ok(()))
                             } else {
                                 *pinwaker = Some(PinWaker::new(cx.waker().clone()));
@@ -146,14 +145,13 @@ macro_rules! gpio_async {
                     }
 
                     // Enable the low interrupt for the pin.
-                    let gpio_block = unsafe { $GPIOX::steal() };
-                    gpio_block.low_ie().write(|w| w.$pxi().set_bit());
+                    self.enable_interrupt(EventType::Low);
 
                     // Await until an interrupt indicates that the pin has transitioned high.
                     poll_fn(|cx| {
                         let result = critical_section::with(|cs| {
                             let pinwaker = &mut PIN_WAKERS.borrow_ref_mut(cs)[$i];
-                            if gpio_block.low_ie().read().$pxi().bit_is_clear() {
+                            if !self.is_interrupt_enabled(EventType::Low) {
                                 Poll::Ready(Ok(()))
                             } else {
                                 *pinwaker = Some(PinWaker::new(cx.waker().clone()));
@@ -174,14 +172,13 @@ macro_rules! gpio_async {
                     }
 
                     // Enable the rising edge interrupt for the pin.
-                    let gpio_block = unsafe { $GPIOX::steal() };
-                    gpio_block.rise_ie().write(|w| w.$pxi().set_bit());
+                    self.enable_interrupt(EventType::Rise);
 
                     // Await until an interrupt indicates that the pin has transitioned high.
                     poll_fn(|cx| {
                         let result = critical_section::with(|cs| {
                             let pinwaker = &mut PIN_WAKERS.borrow_ref_mut(cs)[$i];
-                            if gpio_block.rise_ie().read().$pxi().bit_is_clear() {
+                            if !self.is_interrupt_enabled(EventType::Rise) {
                                 Poll::Ready(Ok(()))
                             } else {
                                 *pinwaker = Some(PinWaker::new(cx.waker().clone()));
@@ -202,14 +199,13 @@ macro_rules! gpio_async {
                     }
 
                     // Enable the falling edge interrupt for the pin.
-                    let gpio_block = unsafe { $GPIOX::steal() };
-                    gpio_block.fall_ie().write(|w| w.$pxi().set_bit());
+                    self.enable_interrupt(EventType::Fall);
 
                     // Await until an interrupt indicates that the pin has transitioned high.
                     poll_fn(|cx| {
                         let result = critical_section::with(|cs| {
                             let pinwaker = &mut PIN_WAKERS.borrow_ref_mut(cs)[$i];
-                            if gpio_block.fall_ie().read().$pxi().bit_is_clear() {
+                            if !self.is_interrupt_enabled(EventType::Fall) {
                                 Poll::Ready(Ok(()))
                             } else {
                                 *pinwaker = Some(PinWaker::new(cx.waker().clone()));
@@ -230,15 +226,12 @@ macro_rules! gpio_async {
                     }
 
                     // Enable the rising and falling edge interrupts for the pin.
-                    let gpio_block = unsafe { $GPIOX::steal() };
-                    gpio_block.rise_ie().write(|w| w.$pxi().set_bit());
-                    gpio_block.fall_ie().write(|w| w.$pxi().set_bit());
+                    self.enable_interrupt(EventType::BothEdges);
 
                     // Await until an interrupt indicates that the pin has transitioned high.
                     poll_fn(|cx| {
                         let result = critical_section::with(|cs| {
-                            if (gpio_block.fall_ie().read().$pxi().bit_is_clear()  ||
-                                gpio_block.rise_ie().read().$pxi().bit_is_clear()) {
+                            if !self.is_interrupt_enabled(EventType::BothEdges) {
                                 Poll::Ready(Ok(()))
                             } else {
                                 let pinwaker = &mut PIN_WAKERS.borrow_ref_mut(cs)[$i];
