@@ -23,6 +23,7 @@ extern crate panic_halt;
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) -> ! {
     let dr = DeviceResources::take().unwrap();
+    let cp = dr.core_peripherals;
     let p = dr.peripherals;
 
     let pins: hifive1::hal::device::DeviceGpioPins = dr.pins;
@@ -44,7 +45,7 @@ async fn main(_spawner: Spawner) -> ! {
     );
 
     // Get Mtimer
-    let mtimer = dr.clint.mtimer();
+    let mtimer = cp.clint.mtimer();
 
     // Configure MTIMER interrupt
     mtimer.disable();
