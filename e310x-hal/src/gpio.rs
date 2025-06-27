@@ -30,6 +30,7 @@ pub trait GpioExt {
     fn split(self) -> Self::Parts;
 
     /// Enables the specified interrupt event for all the GPIO pins.
+    ///
     /// # Note
     ///
     ///  This function does not enable the interrupts in the PLIC, it only sets the
