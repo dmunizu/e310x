@@ -8,15 +8,15 @@ macro_rules! gpio_async {
     ($GPIOX:ident, [
         $($PXi:ident: ($pxi:ident, $i:expr, $handle:ident),)+
     ]) => {
+        use core::cell::RefCell;
+        use core::task::{Poll, Waker};
+        use critical_section::Mutex;
         use crate::asynch::poll_fn;
         use crate::gpio::*;
         use crate::gpio::gpio0::*;
-        use embedded_hal::digital::{InputPin, Error, ErrorType, ErrorKind};
-        use embedded_hal_async::digital::Wait;
         use e310x::$GPIOX;
-        use core::task::{Poll, Waker};
-        use core::cell::RefCell;
-        use critical_section::Mutex;
+        use embedded_hal::digital::{Error, ErrorKind, ErrorType, InputPin};
+        use embedded_hal_async::digital::Wait;
 
         /// Error type for wait trait.
         #[derive(Debug, Clone, Copy, PartialEq, Eq)]
