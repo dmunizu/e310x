@@ -8,12 +8,7 @@
 use embassy_executor::Spawner;
 use hifive1::{
     Led, clock,
-    hal::{
-        DeviceResources,
-        asynch::prelude::*,
-        e310x::{Gpio0, Plic},
-        prelude::*,
-    },
+    hal::{DeviceResources, asynch::prelude::*, e310x::Gpio0, gpio::EventType, prelude::*},
     pin, sprintln,
 };
 extern crate panic_halt;
@@ -48,24 +43,18 @@ async fn main(_spawner: Spawner) -> ! {
     let plic = cp.plic;
     let priorities = plic.priorities();
     priorities.reset::<ExternalInterrupt>();
-    unsafe { priorities.set_priority(ExternalInterrupt::GPIO9, Priority::P1) };
+    unsafe { button.set_exti_priority(Priority::P1) };
 
     // Clear pending interrupts from previous states
-    let gpio_block = unsafe { Gpio0::steal() };
-
-    unsafe {
-        gpio_block.fall_ie().write(|w| w.bits(0x00000000));
-        gpio_block.rise_ie().write(|w| w.bits(0x00000000));
-        gpio_block.fall_ip().write(|w| w.bits(0xffffffff));
-        gpio_block.rise_ip().write(|w| w.bits(0xffffffff));
-    }
+    Gpio0::disable_interrupts(EventType::All);
+    Gpio0::clear_pending_interrupts(EventType::All);
 
     // Enable GPIO9 interrupt in PLIC
     let ctx = plic.ctx0();
     unsafe {
         ctx.enables().disable_all::<ExternalInterrupt>();
         ctx.threshold().set_threshold(Priority::P0);
-        ctx.enables().enable(ExternalInterrupt::GPIO9);
+        button.enable_exti();
         riscv::interrupt::enable();
         plic.enable();
     };
