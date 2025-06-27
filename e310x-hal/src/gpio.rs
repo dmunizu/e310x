@@ -28,6 +28,21 @@ pub trait GpioExt {
 
     /// Splits the GPIO block into independent pins and registers.
     fn split(self) -> Self::Parts;
+
+    /// Enables the specified interrupt event for all the GPIO pins.
+    /// # Note
+    ///
+    ///  This function does not enable the interrupts in the PLIC, it only sets the
+    /// interrupt enable bit in the GPIO peripheral. You must call
+    /// [`enable_exti()`](super::gpio::gpio0::Pin0::enable_exti) on the pin to enable its interrupt in
+    /// the PLIC.
+    fn enable_interrupts(event: EventType);
+
+    /// Disables the specified interrupt event for all the GPIO pins.
+    fn disable_interrupts(event: EventType);
+
+    /// Clears the specified interrupt event pending flag for all the GPIO pins.
+    fn clear_pending_interrupts(event: EventType);
 }
 
 /// Unknown mode (type state)
@@ -195,7 +210,101 @@ macro_rules! gpio {
                         )+
                     }
                 }
+
+                fn enable_interrupts(event: EventType) {
+                    let p = Self::peripheral();
+
+                    unsafe {
+                        match event {
+                            EventType::High => {
+                                p.high_ie().write(|w| w.bits(0xFFFFFFFF));
+                            }
+                            EventType::Low => {
+                                p.low_ie().write(|w| w.bits(0xFFFFFFFF));
+                            }
+                            EventType::Rise => {
+                                p.rise_ie().write(|w| w.bits(0xFFFFFFFF));
+                            }
+                            EventType::Fall => {
+                                p.fall_ie().write(|w| w.bits(0xFFFFFFFF));
+                            }
+                            EventType::BothEdges => {
+                                p.rise_ie().write(|w| w.bits(0xFFFFFFFF));
+                                p.fall_ie().write(|w| w.bits(0xFFFFFFFF));
+                            }
+                            EventType::All => {
+                                p.high_ie().write(|w| w.bits(0xFFFFFFFF));
+                                p.low_ie().write(|w| w.bits(0xFFFFFFFF));
+                                p.rise_ie().write(|w| w.bits(0xFFFFFFFF));
+                                p.fall_ie().write(|w| w.bits(0xFFFFFFFF));
+                            }
+                        }
+                    }
+                }
+
+                fn disable_interrupts(event: EventType) {
+                    let p = Self::peripheral();
+
+                    unsafe {
+                        match event {
+                            EventType::High => {
+                                p.high_ie().write(|w| w.bits(0x00000000));
+                            }
+                            EventType::Low => {
+                                p.low_ie().write(|w| w.bits(0x00000000));
+                            }
+                            EventType::Rise => {
+                                p.rise_ie().write(|w| w.bits(0x00000000));
+                            }
+                            EventType::Fall => {
+                                p.fall_ie().write(|w| w.bits(0x00000000));
+                            }
+                            EventType::BothEdges => {
+                                p.rise_ie().write(|w| w.bits(0x00000000));
+                                p.fall_ie().write(|w| w.bits(0x00000000));
+                            }
+                            EventType::All => {
+                                p.high_ie().write(|w| w.bits(0x00000000));
+                                p.low_ie().write(|w| w.bits(0x00000000));
+                                p.rise_ie().write(|w| w.bits(0x00000000));
+                                p.fall_ie().write(|w| w.bits(0x00000000));
+                            }
+                        }
+                    }
+                }
+
+                fn clear_pending_interrupts(event: EventType) {
+                    let p = Self::peripheral();
+
+                    unsafe {
+                        match event {
+                            EventType::High => {
+                                p.high_ip().write(|w| w.bits(0xFFFFFFFF));
+                            }
+                            EventType::Low => {
+                                p.low_ip().write(|w| w.bits(0xFFFFFFFF));
+                            }
+                            EventType::Rise => {
+                                p.rise_ip().write(|w| w.bits(0xFFFFFFFF));
+                            }
+                            EventType::Fall => {
+                                p.fall_ip().write(|w| w.bits(0xFFFFFFFF));
+                            }
+                            EventType::BothEdges => {
+                                p.rise_ip().write(|w| w.bits(0xFFFFFFFF));
+                                p.fall_ip().write(|w| w.bits(0xFFFFFFFF));
+                            }
+                            EventType::All => {
+                                p.high_ip().write(|w| w.bits(0xFFFFFFFF));
+                                p.low_ip().write(|w| w.bits(0xFFFFFFFF));
+                                p.rise_ip().write(|w| w.bits(0xFFFFFFFF));
+                                p.fall_ip().write(|w| w.bits(0xFFFFFFFF));
+                            }
+                        }
+                    }
+                }
             }
+
 
             $(
                 /// Pin
@@ -295,22 +404,27 @@ macro_rules! gpio {
                     }
 
                     /// Enables the external interrupt source for the pin.
+                    /// # Note
+                    ///
+                    /// This function enables the external interrupt source in the PLIC,
+                    /// but does not enable the PLIC peripheral itself. To enable the plic peripheral
+                    /// you must call `Plic::enable()`.
                     /// # Safety
                     ///
                     /// Enabling an interrupt source can break mask-based critical sections.
-                    pub unsafe fn enable_exti() {
+                    pub unsafe fn enable_exti(&self) {
                         let ctx = unsafe{Plic::steal()}.ctx0();
                         ctx.enables().enable(ExternalInterrupt::$handle);
                     }
 
                     /// Disables the external interrupt source for the pin.
-                    pub fn disable_exti() {
+                    pub fn disable_exti(&self) {
                         let ctx = unsafe{Plic::steal()}.ctx0();
                         ctx.enables().disable(ExternalInterrupt::$handle);
                     }
 
                     /// Returns if the external interrupt source for the pin is enabled.
-                    pub fn is_exti_enabled() -> bool {
+                    pub fn is_exti_enabled(&self) -> bool {
                         let ctx = unsafe{Plic::steal()}.ctx0();
                         ctx.enables().is_enabled(ExternalInterrupt::$handle)
                     }
@@ -319,13 +433,13 @@ macro_rules! gpio {
                     ///  # Safety
                     ///
                     ///  Changing the priority level can break priority-based critical sections.
-                    pub unsafe fn set_exti_priority(priority: Priority) {
+                    pub unsafe fn set_exti_priority(&self, priority: Priority) {
                         let priorities = unsafe{Plic::steal()}.priorities();
                         priorities.set_priority(ExternalInterrupt::$handle, priority);
                     }
 
                     /// Returns the external interrupt source priority.
-                    pub fn get_exti_priority() -> Priority {
+                    pub fn get_exti_priority(&self) -> Priority {
                         let priorities = unsafe{Plic::steal()}.priorities();
                         priorities.get_priority(ExternalInterrupt::$handle)
                     }
@@ -337,7 +451,7 @@ macro_rules! gpio {
                     /// interrupt enable bit in the GPIO peripheral. You must call
                     /// [`enable_exti()`](Self::enable_exti) to enable the interrupt in
                     /// the PLIC.
-                    pub fn enable_interrupt(event: EventType) {
+                    pub fn enable_interrupt(&self, event: EventType) {
                         let gpio_block = $GPIOX::peripheral();
                         let pin_mask = 1 << $i;
 
@@ -362,7 +476,7 @@ macro_rules! gpio {
                     }
 
                     /// Disables the selected interrupts for the pin in the interrupt enable registers
-                    pub fn disable_interrupt(event: EventType) {
+                    pub fn disable_interrupt(&self, event: EventType) {
                         let gpio_block = $GPIOX::peripheral();
                         let pin_mask = 1 << $i;
 
@@ -387,7 +501,7 @@ macro_rules! gpio {
                     }
 
                     /// Clears pending interrupts for the selected pin interrupts.
-                    pub fn clear_pending_interrupt(event: EventType) {
+                    pub fn clear_pending_interrupt(&self, event: EventType) {
                         let gpio_block = $GPIOX::peripheral();
                         let pin_mask = 1 << $i;
 
@@ -418,7 +532,7 @@ macro_rules! gpio {
                     ///  rising or falling edge interrupts are enabled
                     ///  and All will return true if any of the
                     ///  interrupts are enabled.
-                    pub fn is_interrupt_enabled(event: EventType) -> bool {
+                    pub fn is_interrupt_enabled(&self, event: EventType) -> bool {
                         let gpio_block = $GPIOX::peripheral();
                         let pin_mask = 1 << $i;
 
@@ -447,7 +561,7 @@ macro_rules! gpio {
                     ///  rising or falling edge interrupts are pending
                     ///  and All will return true if any of the
                     ///  interrupts are pending.
-                    pub fn is_interrupt_pending(event: EventType) -> bool {
+                    pub fn is_interrupt_pending(&self, event: EventType) -> bool {
                         let gpio_block = $GPIOX::peripheral();
                         let pin_mask = 1 << $i;
 
