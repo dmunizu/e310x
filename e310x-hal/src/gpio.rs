@@ -416,7 +416,7 @@ macro_rules! gpio {
                     ///
                     /// This function enables the external interrupt source in the PLIC,
                     /// but does not enable the PLIC peripheral itself. To enable the plic peripheral
-                    /// you must call `Plic::enable()`.
+                    /// you must call [`Plic::enable()`](riscv-peripheral::plic::enables::ENABLES).
                     ///
                     /// # Safety
                     ///
