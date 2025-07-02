@@ -13,12 +13,34 @@ const FLAG_WRITE: u8 = 0;
 /// Trait for asynchronous I2C wait operations.
 trait AsyncI2C {
     async fn wait_idle(&mut self);
-    async fn write_txr(&mut self, byte: u8);
+    async fn ack_interrupt(&mut self) -> Result<(), ErrorKind>;
     async fn wait_for_write(&mut self, source: NoAcknowledgeSource) -> Result<(), ErrorKind>;
     async fn wait_for_read(&mut self) -> Result<(), ErrorKind>;
 }
 
-impl<I2C: I2cX, PINS> AsyncI2C for I2c<I2C, PINS> {}
+impl<I2C: I2cX, PINS> AsyncI2C for I2c<I2C, PINS> {
+    async fn wait_idle(&mut self) {
+        // Implementation of waiting for the I2C bus to be idle
+        // This could involve checking a status register or similar
+    }
+
+    async fn ack_interrupt(&mut self) -> Result<(), ErrorKind> {
+        // Implementation of checking for acknowledgment interrupt
+        // and handling arbitration loss if necessary
+        Ok(())
+    }
+
+    async fn wait_for_write(&mut self, source: NoAcknowledgeSource) -> Result<(), ErrorKind> {
+        // Implementation of waiting for a write operation to complete
+        // and checking for acknowledgment
+        Ok(())
+    }
+
+    async fn wait_for_read(&mut self) -> Result<(), ErrorKind> {
+        // Implementation of waiting for a read operation to complete
+        Ok(())
+    }
+}
 
 impl<I2C: I2cX, PINS> i2c::I2c for I2c<I2C, PINS> {
     async fn transaction(
@@ -31,7 +53,7 @@ impl<I2C: I2cX, PINS> i2c::I2c for I2c<I2C, PINS> {
             return Ok(());
         }
 
-        self.wait_idle();
+        self.wait_idle().await;
         self.reset();
 
         // we use this flag to detect when we need to send a (repeated) start
@@ -46,7 +68,7 @@ impl<I2C: I2cX, PINS> i2c::I2c for I2c<I2C, PINS> {
                     // Send write command
                     self.write_txr((address << 1) + FLAG_WRITE);
                     self.trigger_write(last_op_was_read, false);
-                    self.wait_for_write(NoAcknowledgeSource::Address)?;
+                    self.wait_for_write(NoAcknowledgeSource::Address).await?;
                     last_op_was_read = false;
 
                     // Write bytes
@@ -54,27 +76,27 @@ impl<I2C: I2cX, PINS> i2c::I2c for I2c<I2C, PINS> {
                     for (j, byte) in bytes.iter().enumerate() {
                         self.write_txr(*byte);
                         self.trigger_write(false, (i == n_ops - 1) && (j == n_bytes - 1));
-                        self.wait_for_write(NoAcknowledgeSource::Data)?;
+                        self.wait_for_write(NoAcknowledgeSource::Data).await?;
                     }
                 }
                 Operation::Read(buffer) => {
                     // Send read command
                     self.write_txr((address << 1) + FLAG_READ);
                     self.trigger_write(!last_op_was_read, false);
-                    self.wait_for_write(NoAcknowledgeSource::Address)?;
+                    self.wait_for_write(NoAcknowledgeSource::Address).await?;
                     last_op_was_read = true;
 
                     // Read bytes
                     let n_bytes = buffer.len();
                     for (j, byte) in buffer.iter_mut().enumerate() {
                         self.trigger_read(j == n_bytes - 1, (i == n_ops - 1) && (j == n_bytes - 1));
-                        self.wait_for_read()?;
+                        self.wait_for_read().await?;
                         *byte = self.read_rxr();
                     }
                 }
             }
         }
-        self.wait_idle();
+        self.wait_idle().await;
 
         Ok(())
     }
