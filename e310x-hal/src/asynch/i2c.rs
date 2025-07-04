@@ -5,10 +5,10 @@
 //!
 use crate::asynch::poll_fn;
 use crate::i2c::{I2c, I2cX};
-use crate::DeviceResources;
 use core::cell::RefCell;
 use core::task::{Poll, Waker};
 use critical_section::Mutex;
+use e310x::I2c0;
 use embedded_hal::i2c::{ErrorKind, NoAcknowledgeSource, Operation};
 use embedded_hal_async::i2c;
 
@@ -34,12 +34,8 @@ fn on_irq() {
         }
     });
     // Clear the interrupt
-    DeviceResources::take()
-        .unwrap()
-        .peripherals
-        .I2C0
-        .cr()
-        .write(|w| w.iack().set_bit());
+    let i2c = unsafe { I2c0::steal() };
+    i2c.cr().write(|w| w.iack().set_bit());
 }
 
 /// I2C Waker
@@ -76,7 +72,7 @@ impl<I2C: I2cX, PINS> AsyncI2C for I2c<I2C, PINS> {
 
     async fn ack_interrupt(&mut self) -> Result<(), ErrorKind> {
         poll_fn(|cx| {
-            if !self.read_sr().tip().bit_is_set() {
+            if self.read_sr().tip().bit_is_clear() {
                 if self.read_sr().al().bit_is_set() {
                     self.set_stop();
                     Poll::Ready(Err(ErrorKind::ArbitrationLoss))
