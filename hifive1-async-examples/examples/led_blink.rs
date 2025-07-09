@@ -9,10 +9,7 @@ use embassy_executor::Spawner;
 use hifive1::{
     Led, clock,
     hal::{
-        DeviceResources,
-        asynch::delay::Delay,
-        asynch::prelude::*,
-        e310x::{Clint, interrupt::Hart},
+        DeviceResources, asynch::delay::Delay, asynch::prelude::*, e310x::interrupt::Hart,
         prelude::*,
     },
     pin, sprintln,
