@@ -4,4 +4,16 @@ members = [
     "e310x",
     "e310x-hal",
     "hifive1",
+    "hifive1-examples",
 ]
+default-members = [
+    "e310x",
+    "e310x-hal",
+    "hifive1",
+]
+
+[workspace.dependencies]
+critical-section = "1.2.0"
+riscv = { git = "https://github.com/rust-embedded/riscv.git", branch = "post-init" }
+riscv-peripheral = { git = "https://github.com/rust-embedded/riscv.git", branch = "post-init" }
+riscv-rt = { git = "https://github.com/rust-embedded/riscv.git", branch = "post-init", features = ["single-hart", "no-interrupts"] }
