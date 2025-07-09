@@ -3,14 +3,12 @@ name = "hifive1-async-examples"
 version = "0.1.0"
 edition = "2024"
 
-[workspace]
-
 [dependencies]
 embassy-executor = { version = "0.7.0", features = ["arch-riscv32", "executor-thread"] } #embassy executor for async tasks
 critical-section = { version = "1.2.0" }
 hifive1 = { path = "../hifive1", version = "0.13.0", features = ["board-redv", "async"] } # Change to your board
-riscv = { version = "0.14.0" }
-riscv-rt = { version = "0.15.0", features = ["single-hart"] }
+riscv = { workspace = true }
+riscv-rt = { workspace = true }
 panic-halt = "1.0.0"
 semihosting = { version = "0.1",  features = ["stdio", "panic-handler"] }
 

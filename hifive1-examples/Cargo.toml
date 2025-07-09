@@ -12,7 +12,7 @@ rust-version = "1.72"
 
 [dependencies]
 critical-section = { workspace = true }
-hifive1 = { path = "../hifive1", version = "0.13.0", features = ["board-hifive1-revb"] } # Change to your board
+hifive1 = { path = "../hifive1", version = "0.13.0", features = ["board-redv"] } # Change to your board
 riscv = { workspace = true }
 riscv-rt = { workspace = true, features = [] }
 panic-halt = "1.0.0"
