@@ -121,7 +121,7 @@ impl Ord for Timer {
 
 impl PartialOrd for Timer {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.expires.cmp(&other.expires))
+        Some(self.cmp(other))
     }
 }
 
