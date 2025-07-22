@@ -26,7 +26,7 @@ static TIMER_QUEUE: Mutex<RefCell<BinaryHeap<Timer, Min, N_TIMERS>>> =
 /// Tries to push a new timer to the timer queue assigned to the `MTIMER` register for the current HART ID.
 /// If it fails (e.g., the timer queue is full), it returns back the timer that failed to be pushed.
 #[inline]
-fn riscv_peripheral_aclint_push_timer(t: Timer) -> Result<(), Timer> {
+pub(crate) fn riscv_peripheral_aclint_push_timer(t: Timer) -> Result<(), Timer> {
     critical_section::with(|cs| {
         let timer_queue = &mut *TIMER_QUEUE.borrow_ref_mut(cs);
         timer_queue.push(t)
@@ -65,7 +65,7 @@ fn machine_timer() {
 
 /// Schedules the next machine timer interrupt for the given HART ID according to the timer queue.
 #[inline]
-fn schedule_machine_timer(mtimer: &MTIMER<Clint>) {
+pub(crate) fn schedule_machine_timer(mtimer: &MTIMER<Clint>) {
     let current_tick = mtimer.mtime().read();
     mtimer.disable();
     if let Some(next_expires) = riscv_peripheral_aclint_wake_timers(current_tick) {
@@ -88,7 +88,7 @@ pub struct Timer {
 impl Timer {
     /// Creates a new timer queue entry.
     #[inline]
-    const fn new(expires: u64, waker: Waker) -> Self {
+    pub(crate) const fn new(expires: u64, waker: Waker) -> Self {
         Self { expires, waker }
     }
 
@@ -121,7 +121,7 @@ impl Ord for Timer {
 
 impl PartialOrd for Timer {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.expires.cmp(&other.expires))
+        Some(self.cmp(other))
     }
 }
 

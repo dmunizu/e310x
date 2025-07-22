@@ -25,11 +25,13 @@ riscv-rt = { version = "0.15.0", optional = true }
 embedded-hal-async = { version = "1.0.0", optional =  true }
 critical-section = { version = "1.2.0", optional = true }
 heapless = { version = "0.8.0", optional = true }
+embassy-time-driver = { version = "0.2.0", optional = true, features = ["tick-hz-32_768"]}
 
 [features]
 g002 = ["e310x/g002"]
 v-trap = ["e310x/v-trap"]
 async = ["riscv-peripheral", "riscv-rt", "embedded-hal-async", "critical-section", "heapless"]
+embassy = ["async", "embassy-time-driver"]
 
 [package.metadata.docs.rs]
 features = ["g002"]

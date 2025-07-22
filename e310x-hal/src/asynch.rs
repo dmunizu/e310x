@@ -10,6 +10,10 @@ pub mod digital;
 pub mod i2c;
 pub mod prelude;
 
+#[cfg(feature = "embassy")]
+#[path = "asynch/embassy/time-driver.rs"]
+pub mod time_driver;
+
 // HAL Async Utilities
 // async trait implementations for embedded-hal
 
