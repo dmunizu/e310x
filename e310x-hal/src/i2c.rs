@@ -12,7 +12,7 @@
 
 use crate::{clock::Clocks, time::Bps};
 use core::ops::Deref;
-use e310x::{i2c0, I2c0};
+use e310x::{i2c0, interrupt::Priority, I2c0};
 use embedded_hal::i2c::{self, ErrorKind, ErrorType, NoAcknowledgeSource, Operation};
 
 /// SDA pin
@@ -22,14 +22,112 @@ pub trait SdaPin<I2C>: private::Sealed {}
 pub trait SclPin<I2C>: private::Sealed {}
 
 /// I2cX trait extends the I2C peripheral
-pub trait I2cX: Deref<Target = i2c0::RegisterBlock> + private::Sealed {}
+pub trait I2cX: Deref<Target = i2c0::RegisterBlock> + private::Sealed {
+    /// Enable the I2C interrupt bit in the control register.
+    ///
+    /// # Note
+    /// This function also writes in the I2C enable register as both the interrupt and the I2C peripheral
+    /// need to be set at the same time.
+    ///
+    /// # Note
+    /// This function does not enable the interrupt in the PLIC, it only sets the
+    /// interrupt enable bit in the I2C peripheral. You must call
+    /// [`enable_exti()`](Self::enable_exti) to enable the interrupt in
+    /// the PLIC.
+    fn enable_interrupt(&mut self);
+
+    /// Disable the I2C interrupt enable bit in the control register.
+    ///
+    /// # Note
+    /// This function writes in the I2C enable register as both the interrupt and the I2C peripheral
+    /// need to be set at the same time.
+    fn disable_interrupt(&mut self);
+
+    /// Clear the interrupt flag in the control register.
+    fn clear_interrupt(&self);
+
+    /// Enables the external interrupt source for the I2C.
+    ///
+    /// # Note
+    /// This function enables the external interrupt source in the PLIC,
+    /// but does not enable the PLIC peripheral itself. To enable the plic peripheral
+    /// you must call [`Plic::enable()`](riscv-peripheral::plic::enables::ENABLES::enable).
+    ///
+    /// # Safety
+    /// Enabling an interrupt source can break mask-based critical sections.
+    unsafe fn enable_exti(&self);
+
+    /// Disables the external interrupt source for the pin.
+    fn disable_exti(&self);
+
+    /// Returns if the external interrupt source for the pin is enabled.
+    fn is_exti_enabled(&self) -> bool;
+
+    /// Sets the external interrupt source priority.
+    ///
+    /// # Safety
+    ///
+    /// Changing the priority level can break priority-based critical sections.
+    unsafe fn set_exti_priority(&self, priority: Priority);
+
+    /// Returns the external interrupt source priority.
+    fn get_exti_priority(&self) -> Priority;
+}
 
 mod i2c_impl {
     use super::{I2c0, I2cX, SclPin, SdaPin};
     use crate::gpio::{gpio0, IOF0};
+    use e310x::{
+        interrupt::{ExternalInterrupt, Priority},
+        Plic,
+    };
 
     /// I2C0
-    impl I2cX for I2c0 {}
+    impl I2cX for I2c0 {
+        #[inline]
+        fn enable_interrupt(&mut self) {
+            self.ctr().write(|w| w.en().set_bit().ien().set_bit());
+        }
+
+        #[inline]
+        fn disable_interrupt(&mut self) {
+            self.ctr().write(|w| w.en().set_bit().ien().clear_bit());
+        }
+
+        fn clear_interrupt(&self) {
+            self.cr().write(|w| w.iack().set_bit());
+        }
+
+        #[inline]
+        unsafe fn enable_exti(&self) {
+            let ctx = unsafe { Plic::steal() }.ctx0();
+            ctx.enables().enable(ExternalInterrupt::I2C0);
+        }
+
+        #[inline]
+        fn disable_exti(&self) {
+            let ctx = unsafe { Plic::steal() }.ctx0();
+            ctx.enables().disable(ExternalInterrupt::I2C0);
+        }
+
+        #[inline]
+        fn is_exti_enabled(&self) -> bool {
+            let ctx = unsafe { Plic::steal() }.ctx0();
+            ctx.enables().is_enabled(ExternalInterrupt::I2C0)
+        }
+
+        #[inline]
+        unsafe fn set_exti_priority(&self, priority: Priority) {
+            let priorities = unsafe { Plic::steal() }.priorities();
+            priorities.set_priority(ExternalInterrupt::I2C0, priority);
+        }
+
+        #[inline]
+        fn get_exti_priority(&self) -> Priority {
+            let priorities = unsafe { Plic::steal() }.priorities();
+            priorities.get_priority(ExternalInterrupt::I2C0)
+        }
+    }
     impl<T> SdaPin<I2c0> for gpio0::Pin12<IOF0<T>> {}
     impl<T> SclPin<I2c0> for gpio0::Pin13<IOF0<T>> {}
 }
@@ -48,7 +146,7 @@ pub enum Speed {
 
 /// I2C abstraction
 pub struct I2c<I2C, PINS> {
-    i2c: I2C,
+    pub(crate) i2c: I2C,
     pins: PINS,
 }
 
@@ -99,24 +197,89 @@ impl<I2C, PINS> I2c<I2C, PINS> {
 }
 
 impl<I2C: I2cX, PINS> I2c<I2C, PINS> {
+    /// Enable the I2C interrupt bit in the control register.
+    ///
+    /// # Note
+    /// This function also writes in the I2C enable register as both the interrupt and the I2C peripheral
+    /// need to be set at the same time.
+    ///
+    /// # Note
+    /// This function does not enable the interrupt in the PLIC, it only sets the
+    /// interrupt enable bit in the I2C peripheral. You must call
+    /// [`enable_exti()`](Self::enable_exti) to enable the interrupt in
+    /// the PLIC.
+    #[inline]
+    pub fn enable_interrupt(&mut self) {
+        self.i2c.enable_interrupt();
+    }
+
+    /// Disable the I2C interrupt enable bit in the control register.
+    ///
+    /// # Note
+    /// This function writes in the I2C enable register as both the interrupt and the I2C peripheral
+    /// need to be set at the same time.
+    #[inline]
+    pub fn disable_interrupt(&mut self) {
+        self.i2c.disable_interrupt();
+    }
+
+    /// Clears the interrupt flag in the control register.
+    pub fn clear_interrupt(&self) {
+        self.i2c.clear_interrupt();
+    }
+
+    /// Enables the external interrupt source for the I2C.
+    ///
+    /// # Note
+    /// This function enables the external interrupt source in the PLIC,
+    /// but does not enable the PLIC peripheral itself. To enable the plic peripheral
+    /// you must call [`Plic::enable()`](riscv-peripheral::plic::enables::ENABLES::enable).
+    /// # Safety
+    /// Enabling an interrupt source can break mask-based critical sections.
+    #[inline]
+    pub unsafe fn enable_exti(&self) {
+        self.i2c.enable_exti();
+    }
+
+    /// Disables the external interrupt source for the pin.
+    #[inline]
+    pub fn disable_exti(&self) {
+        self.i2c.disable_exti();
+    }
+
+    /// Returns if the external interrupt source for the pin is enabled.
+    #[inline]
+    pub fn is_exti_enabled(&self) -> bool {
+        self.i2c.is_exti_enabled()
+    }
+    /// Sets the external interrupt source priority.
+    ///
+    /// # Safety
+    /// Changing the priority level can break priority-based critical sections.
+    #[inline]
+    pub unsafe fn set_exti_priority(&self, priority: Priority) {
+        self.i2c.set_exti_priority(priority);
+    }
+
+    /// Returns the external interrupt source priority.
+    #[inline]
+    pub fn get_exti_priority(&self) -> Priority {
+        self.i2c.get_exti_priority()
+    }
+
     /// Read the status register.
-    fn read_sr(&self) -> i2c0::sr::R {
+    pub(crate) fn read_sr(&self) -> i2c0::sr::R {
         self.i2c.sr().read()
     }
 
-    /// Clear the interrupt flag in the control register.
-    fn clear_interrupt(&self) {
-        self.i2c.cr().write(|w| w.iack().set_bit());
-    }
-
     /// Reset the I2C peripheral.
-    fn reset(&self) {
+    pub(crate) fn reset(&self) {
         self.clear_interrupt();
     }
 
     /// Set the stop bit in the control register.
     /// A stop condition will be sent on the bus.
-    fn set_stop(&self) {
+    pub(crate) fn set_stop(&self) {
         self.i2c.cr().write(|w| w.sto().set_bit());
     }
 
@@ -126,12 +289,12 @@ impl<I2C: I2cX, PINS> I2c<I2C, PINS> {
     ///
     /// This function does not start the transmission. You must call
     /// [`Self::write_to_slave`] to start the transmission.
-    fn write_txr(&self, byte: u8) {
+    pub(crate) fn write_txr(&self, byte: u8) {
         self.i2c.txr_rxr().write(|w| unsafe { w.data().bits(byte) });
     }
 
     /// Read the last byte received from the I2C slave device.
-    fn read_rxr(&self) -> u8 {
+    pub(crate) fn read_rxr(&self) -> u8 {
         self.i2c.txr_rxr().read().data().bits()
     }
 
@@ -142,7 +305,7 @@ impl<I2C: I2cX, PINS> I2c<I2C, PINS> {
     ///
     /// This function does not block until the write is complete. You must call
     /// [`Self::wait_for_write`] to wait for the write to complete.
-    fn trigger_write(&self, start: bool, stop: bool) {
+    pub(crate) fn trigger_write(&self, start: bool, stop: bool) {
         self.i2c
             .cr()
             .write(|w| w.sta().bit(start).wr().set_bit().sto().bit(stop));
@@ -155,14 +318,14 @@ impl<I2C: I2cX, PINS> I2c<I2C, PINS> {
     ///
     /// This function does not block until the read is complete. You must call
     /// [`Self::wait_for_read`] to wait for the read to complete.
-    fn trigger_read(&self, ack: bool, stop: bool) {
+    pub(crate) fn trigger_read(&self, ack: bool, stop: bool) {
         self.i2c
             .cr()
             .write(|w| w.rd().set_bit().ack().bit(ack).sto().bit(stop));
     }
 
     /// Check if the I2C peripheral is idle.
-    fn is_idle(&self) -> bool {
+    pub(crate) fn is_idle(&self) -> bool {
         !self.read_sr().busy().bit_is_set()
     }
 
@@ -177,10 +340,9 @@ impl<I2C: I2cX, PINS> I2c<I2C, PINS> {
     ///
     /// In case of arbitration loss, a stop condition is sent
     /// and an [`ErrorKind::ArbitrationLoss`] is returned.
-    fn ack_interrupt(&self) -> nb::Result<(), ErrorKind> {
+    pub(crate) fn ack_interrupt(&self) -> nb::Result<(), ErrorKind> {
         let sr = self.read_sr();
-        if sr.if_().bit_is_set() {
-            self.clear_interrupt();
+        if sr.tip().bit_is_clear() {
             if sr.al().bit_is_set() {
                 self.set_stop();
                 Err(nb::Error::Other(ErrorKind::ArbitrationLoss))
