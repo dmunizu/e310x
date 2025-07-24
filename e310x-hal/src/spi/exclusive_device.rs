@@ -9,8 +9,8 @@ use super::{Pins, PinsFull, SpiBus as Bus, SpiX};
 
 /// SPI exclusive device abstraction with delay support.
 pub struct SpiExclusiveDevice<SPI, PINS, D> {
-    bus: Bus<SPI, PINS>,
-    delay: D,
+    pub(crate) bus: Bus<SPI, PINS>,
+    pub(crate) delay: D,
 }
 
 impl<SPI, PINS, D> SpiExclusiveDevice<SPI, PINS, D>

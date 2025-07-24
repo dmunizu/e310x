@@ -39,7 +39,7 @@ impl<SPI: SpiX, PINS> SpiBus<SPI, PINS> {
     /// Read a single byte from the SPI bus.
     ///
     /// This function will return `nb::Error::WouldBlock` if the RX FIFO is empty.
-    fn read_input(&self) -> nb::Result<u8, ErrorKind> {
+    pub(crate) fn read_input(&self) -> nb::Result<u8, ErrorKind> {
         let rxdata = self.spi.rxdata().read();
         if rxdata.empty().bit_is_set() {
             Err(nb::Error::WouldBlock)
@@ -51,7 +51,7 @@ impl<SPI: SpiX, PINS> SpiBus<SPI, PINS> {
     /// Write a single byte to the SPI bus.
     ///
     /// This function will return `nb::Error::WouldBlock` if the TX FIFO is full.
-    fn write_output(&self, word: u8) -> nb::Result<(), ErrorKind> {
+    pub(crate) fn write_output(&self, word: u8) -> nb::Result<(), ErrorKind> {
         if self.spi.txdata().read().full().bit_is_set() {
             Err(nb::Error::WouldBlock)
         } else {
@@ -65,7 +65,7 @@ impl<SPI: SpiX, PINS> SpiBus<SPI, PINS> {
     /// # Note
     ///
     /// Data in the RX FIFO (if any) will be lost.
-    fn wait_for_rxfifo(&self) {
+    pub(crate) fn wait_for_rxfifo(&self) {
         // Ensure that RX FIFO is empty
         while self.read_input().is_ok() {}
     }
