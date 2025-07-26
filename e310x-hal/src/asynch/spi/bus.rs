@@ -1,9 +1,10 @@
-use super::SpiExclusiveDeviceAsync;
+use super::{SharedBusAsync, SpiExclusiveDeviceAsync};
 use crate::asynch::poll_fn;
-use crate::spi::{Pins, PinsFull, SpiBus, SpiConfig, SpiX};
+use crate::spi::{Pins, PinsFull, PinsNoCS, SpiBus, SpiConfig, SpiX};
 use core::cell::RefCell;
 use core::task::{Poll, Waker};
 use critical_section::Mutex;
+use embassy_sync::blocking_mutex::raw::RawMutex;
 use embedded_hal_async::{
     delay::DelayNs,
     spi::{self, ErrorKind},
@@ -20,6 +21,13 @@ impl<SPI: SpiX, PINS: Pins<SPI>> SpiBus<SPI, PINS> {
         delay: D,
     ) -> SpiExclusiveDeviceAsync<SPI, PINS, D> {
         SpiExclusiveDeviceAsync::new(self, config, delay)
+    }
+}
+
+impl<SPI: SpiX, PINS: PinsNoCS<SPI>> SpiBus<SPI, PINS> {
+    /// Create a [`SharedBus`] for use with multiple devices.
+    pub fn shared_async<M: RawMutex>(spi: SPI, pins: PINS) -> SharedBusAsync<M, SPI, PINS> {
+        SharedBusAsync::new(Self::new(spi, pins))
     }
 }
 
