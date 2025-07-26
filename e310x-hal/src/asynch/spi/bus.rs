@@ -1,5 +1,6 @@
+use super::SpiExclusiveDeviceAsync;
 use crate::asynch::poll_fn;
-use crate::spi::{PinsFull, SpiBus, SpiX};
+use crate::spi::{Pins, PinsFull, SpiBus, SpiConfig, SpiX};
 use core::cell::RefCell;
 use core::task::{Poll, Waker};
 use critical_section::Mutex;
@@ -11,7 +12,21 @@ use embedded_hal_async::{
 const EMPTY_WRITE_PAD: u8 = 0x00;
 static SPI_WAKER: Mutex<RefCell<Option<Waker>>> = Mutex::new(RefCell::new(None));
 
+impl<SPI: SpiX, PINS: Pins<SPI>> SpiBus<SPI, PINS> {
+    /// Create a new [`SpiExclusiveDeviceAsync`] for exclusive use on this bus
+    pub fn new_device_async<D: DelayNs>(
+        self,
+        config: &SpiConfig,
+        delay: D,
+    ) -> SpiExclusiveDeviceAsync<SPI, PINS, D> {
+        SpiExclusiveDeviceAsync::new(self, config, delay)
+    }
+}
+
 impl<SPI: SpiX, PINS> SpiBus<SPI, PINS> {
+    /// Read a single byte from the SPI bus.
+    ///
+    /// This function will wait if the RX FIFO is empty.
     async fn read_input_async(&self) -> Result<u8, ErrorKind> {
         // Poll the input until data is available
         poll_fn(|cx| match self.read_input() {
@@ -28,6 +43,10 @@ impl<SPI: SpiX, PINS> SpiBus<SPI, PINS> {
         })
         .await
     }
+
+    /// Write a single byte to the SPI bus.
+    ///
+    /// This function will wait if the TX FIFO is full.
     async fn write_output_async(&self, word: u8) -> Result<(), ErrorKind> {
         // Poll the output until it is ready to accept data
         poll_fn(|cx| match self.write_output(word) {
