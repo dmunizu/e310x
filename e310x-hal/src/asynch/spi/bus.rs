@@ -1,0 +1,166 @@
+use crate::asynch::poll_fn;
+use crate::spi::{PinsFull, SpiBus, SpiX};
+use core::cell::RefCell;
+use core::task::{Poll, Waker};
+use critical_section::Mutex;
+use embedded_hal_async::{
+    delay::DelayNs,
+    spi::{self, ErrorKind},
+};
+
+const EMPTY_WRITE_PAD: u8 = 0x00;
+static SPI_WAKER: Mutex<RefCell<Option<Waker>>> = Mutex::new(RefCell::new(None));
+
+impl<SPI: SpiX, PINS> SpiBus<SPI, PINS> {
+    async fn read_input_async(&self) -> Result<u8, ErrorKind> {
+        // Poll the input until data is available
+        poll_fn(|cx| match self.read_input() {
+            Ok(data) => Poll::Ready(Ok(data)),
+            Err(nb::Error::WouldBlock) => {
+                // Register the waker to be notified when an interrupt occurs
+                critical_section::with(|cs| {
+                    let mut spiwaker = SPI_WAKER.borrow_ref_mut(cs);
+                    *spiwaker = Some(cx.waker().clone())
+                });
+                Poll::Pending
+            }
+            Err(nb::Error::Other(e)) => Poll::Ready(Err(e)),
+        })
+        .await
+    }
+    async fn write_output_async(&self, word: u8) -> Result<(), ErrorKind> {
+        // Poll the output until it is ready to accept data
+        poll_fn(|cx| match self.write_output(word) {
+            Ok(()) => Poll::Ready(Ok(())),
+            Err(nb::Error::WouldBlock) => {
+                // Register the waker to be notified when an interrupt occurs
+                critical_section::with(|cs| {
+                    let mut spiwaker = SPI_WAKER.borrow_ref_mut(cs);
+                    *spiwaker = Some(cx.waker().clone())
+                });
+                Poll::Pending
+            }
+            Err(nb::Error::Other(e)) => Poll::Ready(Err(e)),
+        })
+        .await
+    }
+}
+
+impl<SPI: SpiX, PINS: PinsFull<SPI>> spi::SpiBus for SpiBus<SPI, PINS> {
+    async fn read(&mut self, words: &mut [u8]) -> Result<(), Self::Error> {
+        let mut iwrite = 0;
+        let mut iread = 0;
+
+        // Ensure that RX FIFO is empty
+        self.wait_for_rxfifo();
+
+        while iwrite < words.len() || iread < words.len() {
+            if iwrite < words.len() {
+                match self.write_output_async(EMPTY_WRITE_PAD).await {
+                    Ok(()) => iwrite += 1,
+                    Err(e) => return Err(e),
+                }
+            }
+            if iread < iwrite {
+                match self.read_input_async().await {
+                    Ok(data) => {
+                        unsafe { *words.get_unchecked_mut(iread) = data };
+                        iread += 1;
+                    }
+                    Err(e) => return Err(e),
+                }
+            }
+        }
+        Ok(())
+    }
+
+    async fn write(&mut self, words: &[u8]) -> Result<(), Self::Error> {
+        let mut iwrite = 0;
+        let mut iread = 0;
+
+        // Ensure that RX FIFO is empty
+        self.wait_for_rxfifo();
+
+        while iwrite < words.len() || iread < words.len() {
+            if iwrite < words.len() {
+                let byte = unsafe { words.get_unchecked(iwrite) };
+                match self.write_output_async(*byte).await {
+                    Ok(()) => iwrite += 1,
+                    Err(e) => return Err(e),
+                }
+            }
+            if iread < iwrite {
+                match self.read_input_async().await {
+                    Ok(_) => iread += 1,
+                    Err(e) => return Err(e),
+                }
+            }
+        }
+        Ok(())
+    }
+
+    async fn transfer(&mut self, read: &mut [u8], write: &[u8]) -> Result<(), Self::Error> {
+        let mut iwrite = 0;
+        let mut iread = 0;
+        let max_len = read.len().max(write.len());
+
+        // Ensure that RX FIFO is empty
+        self.wait_for_rxfifo();
+
+        while iwrite < max_len || iread < max_len {
+            if iwrite < max_len {
+                let byte = write.get(iwrite).unwrap_or(&EMPTY_WRITE_PAD);
+                match self.write_output_async(*byte).await {
+                    Ok(()) => iwrite += 1,
+                    Err(e) => return Err(e),
+                }
+            }
+            if iread < iwrite {
+                match self.read_input_async().await {
+                    Ok(data) => {
+                        if let Some(byte) = read.get_mut(iread) {
+                            *byte = data;
+                        }
+                        iread += 1;
+                    }
+                    Err(e) => return Err(e),
+                }
+            }
+        }
+        Ok(())
+    }
+
+    async fn transfer_in_place(&mut self, words: &mut [u8]) -> Result<(), Self::Error> {
+        let mut iwrite = 0;
+        let mut iread = 0;
+
+        // Ensure that RX FIFO is empty
+        self.wait_for_rxfifo();
+
+        while iwrite < words.len() || iread < words.len() {
+            if iwrite < words.len() {
+                let byte = unsafe { words.get_unchecked(iwrite) };
+                match self.write_output_async(*byte).await {
+                    Ok(()) => iwrite += 1,
+                    Err(e) => return Err(e),
+                }
+            }
+            if iread < iwrite {
+                match self.read_input_async().await {
+                    Ok(data) => {
+                        unsafe { *words.get_unchecked_mut(iread) = data };
+                        iread += 1;
+                    }
+                    Err(e) => return Err(e),
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn flush(&mut self) -> Result<(), Self::Error> {
+        self.wait_for_rxfifo(); // TODO anything else to do here?
+        Ok(())
+    }
+}
