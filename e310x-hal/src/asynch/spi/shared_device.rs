@@ -1,4 +1,4 @@
-use super::SharedBusAsync;
+use super::SharedBus;
 use crate::spi::{PinCS, PinsFull, PinsNoCS, SpiConfig, SpiX};
 use embassy_sync::blocking_mutex::raw::RawMutex;
 use embedded_hal_async::{
@@ -7,21 +7,21 @@ use embedded_hal_async::{
 };
 
 /// SPI shared device abstraction
-pub struct SpiSharedDeviceAsync<'bus, M: RawMutex, SPI, PINS, CS, D> {
-    bus: &'bus SharedBusAsync<M, SPI, PINS>,
+pub struct SpiSharedDevice<'bus, M: RawMutex, SPI, PINS, CS, D> {
+    bus: &'bus SharedBus<M, SPI, PINS>,
     cs: CS,
     config: SpiConfig,
     delay: D,
 }
 
-impl<M: RawMutex, SPI, PINS, CS, D> SpiSharedDeviceAsync<'_, M, SPI, PINS, CS, D> {
+impl<M: RawMutex, SPI, PINS, CS, D> SpiSharedDevice<'_, M, SPI, PINS, CS, D> {
     /// Releases the CS pin and delay back
     pub fn release(self) -> (CS, D) {
         (self.cs, self.delay)
     }
 }
 
-impl<'bus, M, SPI, PINS, CS, D> SpiSharedDeviceAsync<'bus, M, SPI, PINS, CS, D>
+impl<'bus, M, SPI, PINS, CS, D> SpiSharedDevice<'bus, M, SPI, PINS, CS, D>
 where
     M: RawMutex,
     SPI: SpiX,
@@ -31,12 +31,7 @@ where
 {
     /// Create shared [SpiSharedDevice] using the existing [SharedBus]
     /// and given [SpiConfig]. The config gets cloned.
-    pub fn new(
-        bus: &'bus SharedBusAsync<M, SPI, PINS>,
-        cs: CS,
-        config: &SpiConfig,
-        delay: D,
-    ) -> Self {
+    pub fn new(bus: &'bus SharedBus<M, SPI, PINS>, cs: CS, config: &SpiConfig, delay: D) -> Self {
         Self {
             bus,
             cs,
@@ -46,7 +41,7 @@ where
     }
 }
 
-impl<M, SPI, PINS, CS, D> ErrorType for SpiSharedDeviceAsync<'_, M, SPI, PINS, CS, D>
+impl<M, SPI, PINS, CS, D> ErrorType for SpiSharedDevice<'_, M, SPI, PINS, CS, D>
 where
     M: RawMutex,
     SPI: SpiX,
@@ -57,7 +52,7 @@ where
     type Error = ErrorKind;
 }
 
-impl<M, SPI, PINS, CS, D> SpiDevice for SpiSharedDeviceAsync<'_, M, SPI, PINS, CS, D>
+impl<M, SPI, PINS, CS, D> SpiDevice for SpiSharedDevice<'_, M, SPI, PINS, CS, D>
 where
     M: RawMutex,
     SPI: SpiX,

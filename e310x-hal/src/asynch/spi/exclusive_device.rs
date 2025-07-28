@@ -5,12 +5,12 @@ use embedded_hal_async::{
 };
 
 /// SPI exclusive device abstraction with async delay support.
-pub struct SpiExclusiveDeviceAsync<SPI, PINS, D> {
+pub struct SpiExclusiveDevice<SPI, PINS, D> {
     bus: Bus<SPI, PINS>,
     delay: D,
 }
 
-impl<SPI, PINS, D> SpiExclusiveDeviceAsync<SPI, PINS, D>
+impl<SPI, PINS, D> SpiExclusiveDevice<SPI, PINS, D>
 where
     SPI: SpiX,
     PINS: Pins<SPI>,
@@ -31,7 +31,7 @@ where
     }
 }
 
-impl<SPI, PINS, D> ErrorType for SpiExclusiveDeviceAsync<SPI, PINS, D>
+impl<SPI, PINS, D> ErrorType for SpiExclusiveDevice<SPI, PINS, D>
 where
     SPI: SpiX,
     PINS: Pins<SPI>,
@@ -40,7 +40,7 @@ where
     type Error = spi::ErrorKind;
 }
 
-impl<SPI, PINS, D> SpiDevice for SpiExclusiveDeviceAsync<SPI, PINS, D>
+impl<SPI, PINS, D> SpiDevice for SpiExclusiveDevice<SPI, PINS, D>
 where
     SPI: SpiX,
     PINS: PinsFull<SPI>,

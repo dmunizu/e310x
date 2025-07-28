@@ -1,4 +1,4 @@
-use super::SpiSharedDeviceAsync;
+use super::SpiSharedDevice;
 use crate::spi::{PinCS, PinsNoCS, SpiBus, SpiConfig, SpiX};
 use embassy_sync::blocking_mutex::raw::RawMutex;
 use embassy_sync::mutex::{Mutex, MutexGuard};
@@ -6,9 +6,9 @@ use embedded_hal_async::delay::DelayNs;
 
 /// Newtype for RefCell<Spi> locked behind a Mutex.
 /// Used to hold the [SpiBus] instance so it can be used for multiple [SpiSharedDevice] instances.
-pub struct SharedBusAsync<M: RawMutex, SPI, PINS>(Mutex<M, SpiBus<SPI, PINS>>);
+pub struct SharedBus<M: RawMutex, SPI, PINS>(Mutex<M, SpiBus<SPI, PINS>>);
 
-impl<M: RawMutex, SPI, PINS> SharedBusAsync<M, SPI, PINS>
+impl<M: RawMutex, SPI, PINS> SharedBus<M, SPI, PINS>
 where
     SPI: SpiX,
     PINS: PinsNoCS<SPI>,
@@ -23,12 +23,12 @@ where
         cs: CS,
         config: &SpiConfig,
         delay: D,
-    ) -> SpiSharedDeviceAsync<'a, M, SPI, PINS, CS, D>
+    ) -> SpiSharedDevice<'a, M, SPI, PINS, CS, D>
     where
         CS: PinCS<SPI>,
         PINS: PinsNoCS<SPI>,
     {
-        SpiSharedDeviceAsync::new(self, cs, config, delay)
+        SpiSharedDevice::new(self, cs, config, delay)
     }
 
     /// Lock the Mutex to access the underlying SpiBus

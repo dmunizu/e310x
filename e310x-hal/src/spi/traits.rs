@@ -5,6 +5,7 @@ use e310x::{qspi0, Qspi0, Qspi1, Qspi2};
 #[doc(hidden)]
 pub trait SpiX: Deref<Target = qspi0::RegisterBlock> + private::Sealed {
     const SPI_INDEX: usize;
+    const INTERRUPT_SOURCE: e310x::interrupt::ExternalInterrupt;
 }
 
 /// SPI pins
@@ -42,6 +43,8 @@ mod spi0_impl {
 
     impl SpiX for Qspi0 {
         const SPI_INDEX: usize = 0;
+        const INTERRUPT_SOURCE: e310x::interrupt::ExternalInterrupt =
+            e310x::interrupt::ExternalInterrupt::QSPI0;
     }
 
     impl Pins<Qspi0> for () {
@@ -64,6 +67,8 @@ mod spi1_impl {
 
     impl SpiX for Qspi1 {
         const SPI_INDEX: usize = 1;
+        const INTERRUPT_SOURCE: e310x::interrupt::ExternalInterrupt =
+            e310x::interrupt::ExternalInterrupt::QSPI1;
     }
 
     impl PinCS<Qspi1> for Cs0 {
@@ -174,6 +179,8 @@ mod spi2_impl {
 
     impl SpiX for Qspi2 {
         const SPI_INDEX: usize = 2;
+        const INTERRUPT_SOURCE: e310x::interrupt::ExternalInterrupt =
+            e310x::interrupt::ExternalInterrupt::QSPI2;
     }
 
     impl PinCS<Qspi2> for Cs0 {

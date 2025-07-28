@@ -6,10 +6,7 @@ use embedded_hal_nb::spi::FullDuplex;
 
 use super::{Pins, PinsFull, PinsNoCS, SharedBus, SpiConfig, SpiExclusiveDevice, SpiX};
 
-use e310x::{
-    interrupt::{ExternalInterrupt, Priority},
-    Plic,
-};
+use e310x::{interrupt::Priority, Plic};
 
 const EMPTY_WRITE_PAD: u8 = 0x00;
 
@@ -45,14 +42,22 @@ impl<SPI: SpiX, PINS> SpiBus<SPI, PINS> {
     /// interrupt enable bit in the SPI peripheral. You must call
     /// [`enable_exti()`](Self::enable_exti) to enable the interrupt in
     /// the PLIC.
-    pub fn enable_interrupt(&mut self, comm_type: CommType) {
+    pub fn enable_interrupt(&self, comm_type: CommType) {
         // Match the CommType enum
         match comm_type {
             CommType::Tx => {
-                self.spi.ie().write(|w| w.txwm().set_bit());
+                // Enable Tx interrupt while keeping Rx interrupt
+                self.spi.ie().modify(|r, w| {
+                    w.rxwm().bit(r.rxwm().bit_is_set());
+                    w.txwm().set_bit()
+                });
             }
             CommType::Rx => {
-                self.spi.ie().write(|w| w.rxwm().set_bit());
+                // Enable Rx interrupt while keeping Tx interrupt
+                self.spi.ie().modify(|r, w| {
+                    w.txwm().bit(r.txwm().bit_is_set());
+                    w.rxwm().set_bit()
+                });
             }
             CommType::TxRx => {
                 self.spi.ie().write(|w| w.txwm().set_bit().rxwm().set_bit());
@@ -61,14 +66,22 @@ impl<SPI: SpiX, PINS> SpiBus<SPI, PINS> {
     }
 
     /// Disable the SPI interrupt enable bit in the control register.
-    pub fn disable_interrupt(&mut self, comm_type: CommType) {
+    pub fn disable_interrupt(&self, comm_type: CommType) {
         // Match the CommType enum
         match comm_type {
             CommType::Tx => {
-                self.spi.ie().write(|w| w.txwm().clear_bit());
+                // Disable Tx interrupt while keeping Rx interrupt
+                self.spi.ie().modify(|r, w| {
+                    w.rxwm().bit(r.rxwm().bit_is_set());
+                    w.txwm().clear_bit()
+                });
             }
             CommType::Rx => {
-                self.spi.ie().write(|w| w.rxwm().clear_bit());
+                // Disable Rx interrupt while keeping Tx interrupt
+                self.spi.ie().modify(|r, w| {
+                    w.txwm().bit(r.txwm().bit_is_set());
+                    w.rxwm().clear_bit()
+                });
             }
             CommType::TxRx => {
                 self.spi
@@ -79,7 +92,7 @@ impl<SPI: SpiX, PINS> SpiBus<SPI, PINS> {
     }
 
     /// Change the Watermark Register for the specified SPI communication to the specified value.
-    pub fn set_watermark(&mut self, comm_type: CommType, watermark: u8) {
+    pub fn set_watermark(&self, comm_type: CommType, watermark: u8) {
         // Match the CommType enum
         match comm_type {
             CommType::Tx => {
@@ -126,34 +139,19 @@ impl<SPI: SpiX, PINS> SpiBus<SPI, PINS> {
     /// Enabling an interrupt source can break mask-based critical sections.
     pub unsafe fn enable_exti(&self) {
         let ctx = unsafe { Plic::steal() }.ctx0();
-        match SPI::SPI_INDEX {
-            0 => ctx.enables().enable(ExternalInterrupt::QSPI0),
-            1 => ctx.enables().enable(ExternalInterrupt::QSPI1),
-            2 => ctx.enables().enable(ExternalInterrupt::QSPI2),
-            _ => unreachable!(),
-        }
+        ctx.enables().enable(SPI::INTERRUPT_SOURCE);
     }
 
     /// Disables the external interrupt source for the pin.
     pub fn disable_exti(&self) {
         let ctx = unsafe { Plic::steal() }.ctx0();
-        match SPI::SPI_INDEX {
-            0 => ctx.enables().disable(ExternalInterrupt::QSPI0),
-            1 => ctx.enables().disable(ExternalInterrupt::QSPI1),
-            2 => ctx.enables().disable(ExternalInterrupt::QSPI2),
-            _ => unreachable!(),
-        }
+        ctx.enables().disable(SPI::INTERRUPT_SOURCE);
     }
 
     /// Returns if the external interrupt source for the pin is enabled.
     pub fn is_exti_enabled(&self) -> bool {
         let ctx = unsafe { Plic::steal() }.ctx0();
-        match SPI::SPI_INDEX {
-            0 => ctx.enables().is_enabled(ExternalInterrupt::QSPI0),
-            1 => ctx.enables().is_enabled(ExternalInterrupt::QSPI1),
-            2 => ctx.enables().is_enabled(ExternalInterrupt::QSPI2),
-            _ => unreachable!(),
-        }
+        ctx.enables().is_enabled(SPI::INTERRUPT_SOURCE)
     }
 
     /// Sets the external interrupt source priority.
@@ -163,23 +161,13 @@ impl<SPI: SpiX, PINS> SpiBus<SPI, PINS> {
     /// Changing the priority level can break priority-based critical sections.
     pub unsafe fn set_exti_priority(&self, priority: Priority) {
         let priorities = unsafe { Plic::steal() }.priorities();
-        match SPI::SPI_INDEX {
-            0 => priorities.set_priority(ExternalInterrupt::QSPI0, priority),
-            1 => priorities.set_priority(ExternalInterrupt::QSPI1, priority),
-            2 => priorities.set_priority(ExternalInterrupt::QSPI2, priority),
-            _ => unreachable!(),
-        }
+        priorities.set_priority(SPI::INTERRUPT_SOURCE, priority);
     }
 
     /// Returns the external interrupt source priority.
     pub fn get_exti_priority(&self) -> Priority {
         let priorities = unsafe { Plic::steal() }.priorities();
-        match SPI::SPI_INDEX {
-            0 => priorities.get_priority(ExternalInterrupt::QSPI0),
-            1 => priorities.get_priority(ExternalInterrupt::QSPI1),
-            2 => priorities.get_priority(ExternalInterrupt::QSPI2),
-            _ => unreachable!(),
-        }
+        priorities.get_priority(SPI::INTERRUPT_SOURCE)
     }
 }
 
