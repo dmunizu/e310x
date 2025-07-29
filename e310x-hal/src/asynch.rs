@@ -9,6 +9,7 @@ pub mod delay;
 pub mod digital;
 pub mod i2c;
 pub mod prelude;
+pub mod serial;
 
 #[cfg(feature = "embassy")]
 #[path = "asynch/embassy/time-driver.rs"]
