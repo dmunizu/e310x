@@ -16,9 +16,9 @@
 //! - RX: Pin 23 IOF0
 //! - Interrupt::UART1
 
-use crate::asynch::poll_fn;
-use crate::serial::{Rx, RxPin, Serial, Tx, TxPin, UartX};
+use crate::serial::{Rx, RxPin, Serial, Tx, TxPin, UartX, WatermarkValue};
 use core::cell::RefCell;
+use core::future::poll_fn;
 use core::task::{Poll, Waker};
 use critical_section::Mutex;
 use e310x::{Uart0, Uart1};
@@ -86,7 +86,7 @@ impl<UART: UartX, PIN: RxPin<UART>> embedded_io_async::Read for Rx<UART, PIN> {
                         *uartwaker = Some(cx.waker().clone());
                     });
                     //Enable interrupt for the UART
-                    self.set_watermark(0);
+                    self.set_watermark(WatermarkValue::W0);
                     self.enable_interrupt();
                     Poll::Pending
                 }
@@ -130,7 +130,7 @@ impl<UART: UartX, PIN: TxPin<UART>> embedded_io_async::Write for Tx<UART, PIN> {
                     *uartwaker = Some(cx.waker().clone());
                 });
                 //Enable interrupt for the UART
-                self.set_watermark(7);
+                self.set_watermark(WatermarkValue::W7);
                 self.enable_interrupt();
                 Poll::Pending
             }
@@ -161,7 +161,7 @@ impl<UART: UartX, PIN: TxPin<UART>> embedded_io_async::Write for Tx<UART, PIN> {
                     *uartwaker = Some(cx.waker().clone());
                 });
                 //Enable interrupt for the UART
-                self.set_watermark(1);
+                self.set_watermark(WatermarkValue::W1);
                 self.enable_interrupt();
                 Poll::Pending
             }

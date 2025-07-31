@@ -13,25 +13,14 @@
 //! - RX: Pin 23 IOF0
 //! - Interrupt::UART1
 
+pub use crate::spi::{CommType, WatermarkValue};
+use crate::{clock::Clocks, time::Bps};
 use core::ops::Deref;
 use e310x::{
     interrupt::{ExternalInterrupt, Priority},
     uart0, Plic, Uart0, Uart1,
 };
 use embedded_hal_nb::serial;
-
-use crate::{clock::Clocks, time::Bps};
-
-/// Select between UART transmission or reception for Serial bit configuration.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CommType {
-    /// Transmission
-    Tx,
-    /// Reception
-    Rx,
-    /// Both transmission and reception
-    TxRx,
-}
 
 /// TX pin
 pub trait TxPin<UART>: private::Sealed {}
@@ -44,6 +33,9 @@ pub trait UartX: Deref<Target = uart0::RegisterBlock> + private::Sealed {
     /// UART interface ID to difference it from the rest
     const UART_INDEX: usize;
 
+    /// Interrupt Source for the UART interface
+    const INTERRUPT_SOURCE: ExternalInterrupt;
+
     /// Steals the UART peripheral
     ///
     /// # Safety
@@ -53,11 +45,14 @@ pub trait UartX: Deref<Target = uart0::RegisterBlock> + private::Sealed {
 }
 
 mod impl_uart {
+    use e310x::interrupt::ExternalInterrupt;
+
     use super::{RxPin, TxPin, Uart0, Uart1, UartX};
     use crate::gpio::{gpio0, IOF0};
     // UART0
     impl UartX for Uart0 {
         const UART_INDEX: usize = 0;
+        const INTERRUPT_SOURCE: ExternalInterrupt = ExternalInterrupt::UART0;
         unsafe fn steal() -> Self {
             Uart0::steal()
         }
@@ -68,6 +63,7 @@ mod impl_uart {
     // UART1
     impl UartX for Uart1 {
         const UART_INDEX: usize = 1;
+        const INTERRUPT_SOURCE: ExternalInterrupt = ExternalInterrupt::UART1;
         unsafe fn steal() -> Self {
             Uart1::steal()
         }
@@ -117,11 +113,11 @@ impl<UART: UartX, PIN: RxPin<UART>> Rx<UART, PIN> {
     }
 
     /// Change the Watermark Register for the UART reception to the specified value.
-    pub fn set_watermark(&mut self, watermark: u8) {
+    pub fn set_watermark(&mut self, watermark: WatermarkValue) {
         self.uart.rxctrl().modify(|r, w| {
             // Preserve the current value of `enable` while updating `counter`
             w.enable().bit(r.enable().bit());
-            unsafe { w.counter().bits(watermark) }
+            unsafe { w.counter().bits(watermark.into()) }
         });
     }
 
@@ -141,31 +137,19 @@ impl<UART: UartX, PIN: RxPin<UART>> Rx<UART, PIN> {
     /// Enabling an interrupt source can break mask-based critical sections.
     pub unsafe fn enable_exti(&self) {
         let ctx = unsafe { Plic::steal() }.ctx0();
-        match UART::UART_INDEX {
-            0 => ctx.enables().enable(ExternalInterrupt::UART0),
-            1 => ctx.enables().enable(ExternalInterrupt::UART1),
-            _ => unreachable!(),
-        }
+        ctx.enables().enable(UART::INTERRUPT_SOURCE);
     }
 
     /// Disables the external interrupt source for the pin.
     pub fn disable_exti(&self) {
         let ctx = unsafe { Plic::steal() }.ctx0();
-        match UART::UART_INDEX {
-            0 => ctx.enables().disable(ExternalInterrupt::UART0),
-            1 => ctx.enables().disable(ExternalInterrupt::UART1),
-            _ => unreachable!(),
-        }
+        ctx.enables().disable(UART::INTERRUPT_SOURCE);
     }
 
     /// Returns if the external interrupt source for the pin is enabled.
     pub fn is_exti_enabled(&self) -> bool {
         let ctx = unsafe { Plic::steal() }.ctx0();
-        match UART::UART_INDEX {
-            0 => ctx.enables().is_enabled(ExternalInterrupt::UART0),
-            1 => ctx.enables().is_enabled(ExternalInterrupt::UART1),
-            _ => unreachable!(),
-        }
+        ctx.enables().is_enabled(UART::INTERRUPT_SOURCE)
     }
 
     /// Sets the external interrupt source priority.
@@ -175,20 +159,12 @@ impl<UART: UartX, PIN: RxPin<UART>> Rx<UART, PIN> {
     /// Changing the priority level can break priority-based critical sections.
     pub unsafe fn set_exti_priority(&self, priority: Priority) {
         let priorities = unsafe { Plic::steal() }.priorities();
-        match UART::UART_INDEX {
-            0 => priorities.set_priority(ExternalInterrupt::UART0, priority),
-            1 => priorities.set_priority(ExternalInterrupt::UART1, priority),
-            _ => unreachable!(),
-        }
+        priorities.set_priority(UART::INTERRUPT_SOURCE, priority);
     }
     /// Returns the external interrupt source priority.
     pub fn get_exti_priority(&self) -> Priority {
         let priorities = unsafe { Plic::steal() }.priorities();
-        match UART::UART_INDEX {
-            0 => priorities.get_priority(ExternalInterrupt::UART0),
-            1 => priorities.get_priority(ExternalInterrupt::UART1),
-            _ => unreachable!(),
-        }
+        priorities.get_priority(UART::INTERRUPT_SOURCE)
     }
 }
 
@@ -274,12 +250,12 @@ impl<UART: UartX, PIN: TxPin<UART>> Tx<UART, PIN> {
     }
 
     /// Change the Watermark Register for the UART transmission to the specified value.
-    pub fn set_watermark(&mut self, watermark: u8) {
+    pub fn set_watermark(&mut self, watermark: WatermarkValue) {
         self.uart.txctrl().modify(|r, w| {
             // Preserve the current value of `enable` and `nstop` while updating `counter`
             w.enable().bit(r.enable().bit());
             w.nstop().bit(r.nstop().bit());
-            unsafe { w.counter().bits(watermark) }
+            unsafe { w.counter().bits(watermark.into()) }
         });
     }
 
@@ -299,31 +275,19 @@ impl<UART: UartX, PIN: TxPin<UART>> Tx<UART, PIN> {
     /// Enabling an interrupt source can break mask-based critical sections.
     pub unsafe fn enable_exti(&self) {
         let ctx = unsafe { Plic::steal() }.ctx0();
-        match UART::UART_INDEX {
-            0 => ctx.enables().enable(ExternalInterrupt::UART0),
-            1 => ctx.enables().enable(ExternalInterrupt::UART1),
-            _ => unreachable!(),
-        }
+        ctx.enables().enable(UART::INTERRUPT_SOURCE);
     }
 
     /// Disables the external interrupt source for the pin.
     pub fn disable_exti(&self) {
         let ctx = unsafe { Plic::steal() }.ctx0();
-        match UART::UART_INDEX {
-            0 => ctx.enables().disable(ExternalInterrupt::UART0),
-            1 => ctx.enables().disable(ExternalInterrupt::UART1),
-            _ => unreachable!(),
-        }
+        ctx.enables().disable(UART::INTERRUPT_SOURCE);
     }
 
     /// Returns if the external interrupt source for the pin is enabled.
     pub fn is_exti_enabled(&self) -> bool {
         let ctx = unsafe { Plic::steal() }.ctx0();
-        match UART::UART_INDEX {
-            0 => ctx.enables().is_enabled(ExternalInterrupt::UART0),
-            1 => ctx.enables().is_enabled(ExternalInterrupt::UART1),
-            _ => unreachable!(),
-        }
+        ctx.enables().is_enabled(UART::INTERRUPT_SOURCE)
     }
 
     /// Sets the external interrupt source priority.
@@ -333,20 +297,12 @@ impl<UART: UartX, PIN: TxPin<UART>> Tx<UART, PIN> {
     /// Changing the priority level can break priority-based critical sections.
     pub unsafe fn set_exti_priority(&self, priority: Priority) {
         let priorities = unsafe { Plic::steal() }.priorities();
-        match UART::UART_INDEX {
-            0 => priorities.set_priority(ExternalInterrupt::UART0, priority),
-            1 => priorities.set_priority(ExternalInterrupt::UART1, priority),
-            _ => unreachable!(),
-        }
+        priorities.set_priority(UART::INTERRUPT_SOURCE, priority);
     }
     /// Returns the external interrupt source priority.
     pub fn get_exti_priority(&self) -> Priority {
         let priorities = unsafe { Plic::steal() }.priorities();
-        match UART::UART_INDEX {
-            0 => priorities.get_priority(ExternalInterrupt::UART0),
-            1 => priorities.get_priority(ExternalInterrupt::UART1),
-            _ => unreachable!(),
-        }
+        priorities.get_priority(UART::INTERRUPT_SOURCE)
     }
 }
 
@@ -509,13 +465,13 @@ impl<UART: UartX, TX: TxPin<UART>, RX: RxPin<UART>> Serial<UART, TX, RX> {
     }
 
     /// Change the Watermark Register for the UART transmission to the specified value.
-    pub fn set_watermark(&mut self, comm_type: CommType, watermark: u8) {
+    pub fn set_watermark(&mut self, comm_type: CommType, watermark: WatermarkValue) {
         match comm_type {
-            CommType::Tx => self.tx.set_watermark(watermark),
-            CommType::Rx => self.rx.set_watermark(watermark),
+            CommType::Tx => self.tx.set_watermark(watermark.into()),
+            CommType::Rx => self.rx.set_watermark(watermark.into()),
             CommType::TxRx => {
-                self.tx.set_watermark(watermark);
-                self.rx.set_watermark(watermark);
+                self.tx.set_watermark(watermark.into());
+                self.rx.set_watermark(watermark.into());
             }
         }
     }
@@ -540,31 +496,19 @@ impl<UART: UartX, TX: TxPin<UART>, RX: RxPin<UART>> Serial<UART, TX, RX> {
     /// Enabling an interrupt source can break mask-based critical sections.
     pub unsafe fn enable_exti(&self) {
         let ctx = unsafe { Plic::steal() }.ctx0();
-        match UART::UART_INDEX {
-            0 => ctx.enables().enable(ExternalInterrupt::UART0),
-            1 => ctx.enables().enable(ExternalInterrupt::UART1),
-            _ => unreachable!(),
-        }
+        ctx.enables().enable(UART::INTERRUPT_SOURCE);
     }
 
     /// Disables the external interrupt source for the pin.
     pub fn disable_exti(&self) {
         let ctx = unsafe { Plic::steal() }.ctx0();
-        match UART::UART_INDEX {
-            0 => ctx.enables().disable(ExternalInterrupt::UART0),
-            1 => ctx.enables().disable(ExternalInterrupt::UART1),
-            _ => unreachable!(),
-        }
+        ctx.enables().disable(UART::INTERRUPT_SOURCE);
     }
 
     /// Returns if the external interrupt source for the pin is enabled.
     pub fn is_exti_enabled(&self) -> bool {
         let ctx = unsafe { Plic::steal() }.ctx0();
-        match UART::UART_INDEX {
-            0 => ctx.enables().is_enabled(ExternalInterrupt::UART0),
-            1 => ctx.enables().is_enabled(ExternalInterrupt::UART1),
-            _ => unreachable!(),
-        }
+        ctx.enables().is_enabled(UART::INTERRUPT_SOURCE)
     }
 
     /// Sets the external interrupt source priority.
@@ -574,20 +518,12 @@ impl<UART: UartX, TX: TxPin<UART>, RX: RxPin<UART>> Serial<UART, TX, RX> {
     /// Changing the priority level can break priority-based critical sections.
     pub unsafe fn set_exti_priority(&self, priority: Priority) {
         let priorities = unsafe { Plic::steal() }.priorities();
-        match UART::UART_INDEX {
-            0 => priorities.set_priority(ExternalInterrupt::UART0, priority),
-            1 => priorities.set_priority(ExternalInterrupt::UART1, priority),
-            _ => unreachable!(),
-        }
+        priorities.set_priority(UART::INTERRUPT_SOURCE, priority);
     }
     /// Returns the external interrupt source priority.
     pub fn get_exti_priority(&self) -> Priority {
         let priorities = unsafe { Plic::steal() }.priorities();
-        match UART::UART_INDEX {
-            0 => priorities.get_priority(ExternalInterrupt::UART0),
-            1 => priorities.get_priority(ExternalInterrupt::UART1),
-            _ => unreachable!(),
-        }
+        priorities.get_priority(UART::INTERRUPT_SOURCE)
     }
 }
 
