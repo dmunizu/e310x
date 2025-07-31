@@ -3,9 +3,9 @@
 //!
 //! Implementation of the Async Embedded HAL I2C functionality.
 //!
-use crate::asynch::poll_fn;
 use crate::i2c::{I2c, I2cX};
 use core::cell::RefCell;
+use core::future::poll_fn;
 use core::task::{Poll, Waker};
 use critical_section::Mutex;
 use e310x::I2c0;
@@ -26,16 +26,19 @@ fn on_irq() {
             waker.wake();
         }
     });
-    // Clear the interrupt
+    // Disable and clear the interrupt
     let i2c = unsafe { I2c0::steal() };
-    i2c.clear_interrupt();
+    i2c.ctr().modify(|r, w| {
+        w.en().bit(r.en().bit_is_set());
+        w.ien().clear_bit()
+    });
+    i2c.cr().write(|w| w.iack().set_bit());
 }
 
 impl<I2C: I2cX, PINS> I2c<I2C, PINS> {
     /// Wait until the I2C bus is idle.
     async fn wait_idle_async(&mut self) {
         poll_fn(|cx| {
-            self.disable_interrupt();
             if self.is_idle() {
                 Poll::Ready(())
             } else {
@@ -55,7 +58,6 @@ impl<I2C: I2cX, PINS> I2c<I2C, PINS> {
     /// Acknowledge the I2C interrupt.
     async fn ack_interrupt_async(&mut self) -> Result<(), ErrorKind> {
         poll_fn(|cx| {
-            self.disable_interrupt();
             let result = self.ack_interrupt();
             match result {
                 Ok(()) => Poll::Ready(Ok(())),

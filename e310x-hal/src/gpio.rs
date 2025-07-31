@@ -532,7 +532,7 @@ macro_rules! gpio {
                     }
 
                     /// Clears pending interrupts for the selected pin interrupts.
-                    pub fn clear_pending_interrupt(&self, event: EventType) {
+                    pub fn clear_interrupt(&self, event: EventType) {
                         let gpio_block = $GPIOX::peripheral();
                         let pin_mask = 1 << $i;
 

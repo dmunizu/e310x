@@ -10,8 +10,8 @@ macro_rules! gpio_async {
     ]) => {
         use core::cell::RefCell;
         use core::task::{Poll, Waker};
+        use core::future::poll_fn;
         use critical_section::Mutex;
-        use crate::asynch::poll_fn;
         use crate::gpio::*;
         use crate::gpio::gpio0::*;
         use e310x::$GPIOX;
@@ -27,28 +27,13 @@ macro_rules! gpio_async {
             Other,
         }
 
-        struct PinWaker {
-            waker: Waker,
-        }
-
         const N_PINS: usize = 32;
-        static PIN_WAKERS: Mutex<RefCell<[Option<PinWaker>; N_PINS]>> =
+        static PIN_WAKERS: Mutex<RefCell<[Option<Waker>; N_PINS]>> =
         Mutex::new(RefCell::new([const{None}; N_PINS]));
 
         impl Error for DigitalError {
             fn kind(&self) -> ErrorKind {
                 ErrorKind::Other
-            }
-        }
-
-        impl PinWaker {
-            fn new(waker: Waker) -> Self {
-                Self { waker }
-            }
-            /// Consumes the timer and wakes its associated waker.
-            #[inline]
-            pub fn wake(self) {
-                self.waker.wake();
             }
         }
 
@@ -122,7 +107,7 @@ macro_rules! gpio_async {
                             if !self.is_interrupt_enabled(EventType::High) {
                                 Poll::Ready(Ok(()))
                             } else {
-                                *pinwaker = Some(PinWaker::new(cx.waker().clone()));
+                                *pinwaker = Some(cx.waker().clone());
                                 Poll::Pending
                             }
                         });
@@ -154,7 +139,7 @@ macro_rules! gpio_async {
                             if !self.is_interrupt_enabled(EventType::Low) {
                                 Poll::Ready(Ok(()))
                             } else {
-                                *pinwaker = Some(PinWaker::new(cx.waker().clone()));
+                                *pinwaker = Some(cx.waker().clone());
                                 Poll::Pending
                             }
                         });
@@ -181,7 +166,7 @@ macro_rules! gpio_async {
                             if !self.is_interrupt_enabled(EventType::Rise) {
                                 Poll::Ready(Ok(()))
                             } else {
-                                *pinwaker = Some(PinWaker::new(cx.waker().clone()));
+                                *pinwaker = Some(cx.waker().clone());
                                 Poll::Pending
                             }
                         });
@@ -208,7 +193,7 @@ macro_rules! gpio_async {
                             if !self.is_interrupt_enabled(EventType::Fall) {
                                 Poll::Ready(Ok(()))
                             } else {
-                                *pinwaker = Some(PinWaker::new(cx.waker().clone()));
+                                *pinwaker = Some(cx.waker().clone());
                                 Poll::Pending
                             }
                         });
@@ -235,7 +220,7 @@ macro_rules! gpio_async {
                                 Poll::Ready(Ok(()))
                             } else {
                                 let pinwaker = &mut PIN_WAKERS.borrow_ref_mut(cs)[$i];
-                                *pinwaker = Some(PinWaker::new(cx.waker().clone()));
+                                *pinwaker = Some(cx.waker().clone());
                                 Poll::Pending
                             }
                         });
