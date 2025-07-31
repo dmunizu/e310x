@@ -6,8 +6,8 @@
 //! Therefore, it needs to schedule the machine-level timer interrupts via the [`MTIMECMP`] register assigned to the current HART.
 //! Thus, the [`Delay`] instance must be created on the same HART that is used to call the asynchronous delay methods.
 
-use crate::asynch::poll_fn;
 use core::cell::RefCell;
+use core::future::poll_fn;
 use core::{
     cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd},
     task::{Poll, Waker},
