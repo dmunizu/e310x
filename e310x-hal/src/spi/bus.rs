@@ -21,6 +21,51 @@ pub enum CommType {
     TxRx,
 }
 
+/// Watermark values limited from 0 to 7.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WatermarkValue {
+    /// Watermark Value 0
+    W0 = 0,
+    /// Watermark Value 1
+    W1 = 1,
+    /// Watermark Value 2
+    W2 = 2,
+    /// Watermark Value 3
+    W3 = 3,
+    /// Watermark Value 4
+    W4 = 4,
+    /// Watermark Value 5
+    W5 = 5,
+    /// Watermark Value 6
+    W6 = 6,
+    /// Watermark Value 7
+    W7 = 7,
+}
+
+impl From<WatermarkValue> for u8 {
+    fn from(w: WatermarkValue) -> u8 {
+        w as u8
+    }
+}
+
+impl TryFrom<u8> for WatermarkValue {
+    type Error = ();
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(WatermarkValue::W0),
+            1 => Ok(WatermarkValue::W1),
+            2 => Ok(WatermarkValue::W2),
+            3 => Ok(WatermarkValue::W3),
+            4 => Ok(WatermarkValue::W4),
+            5 => Ok(WatermarkValue::W5),
+            6 => Ok(WatermarkValue::W6),
+            7 => Ok(WatermarkValue::W7),
+            _ => Err(()),
+        }
+    }
+}
+
 /// SPI bus abstraction
 pub struct SpiBus<SPI, PINS> {
     spi: SPI,
@@ -92,26 +137,26 @@ impl<SPI: SpiX, PINS> SpiBus<SPI, PINS> {
     }
 
     /// Change the Watermark Register for the specified SPI communication to the specified value.
-    pub fn set_watermark(&self, comm_type: CommType, watermark: u8) {
+    pub fn set_watermark(&self, comm_type: CommType, watermark: WatermarkValue) {
         // Match the CommType enum
         match comm_type {
             CommType::Tx => {
                 self.spi
                     .txmark()
-                    .write(|w| unsafe { w.txmark().bits(watermark) });
+                    .write(|w| unsafe { w.txmark().bits(watermark.into()) });
             }
             CommType::Rx => {
                 self.spi
                     .rxmark()
-                    .write(|w| unsafe { w.rxmark().bits(watermark) });
+                    .write(|w| unsafe { w.rxmark().bits(watermark.into()) });
             }
             CommType::TxRx => {
                 self.spi
                     .txmark()
-                    .write(|w| unsafe { w.txmark().bits(watermark) });
+                    .write(|w| unsafe { w.txmark().bits(watermark.into()) });
                 self.spi
                     .rxmark()
-                    .write(|w| unsafe { w.rxmark().bits(watermark) });
+                    .write(|w| unsafe { w.rxmark().bits(watermark.into()) });
             }
         }
     }

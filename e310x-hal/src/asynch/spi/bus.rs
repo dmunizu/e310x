@@ -1,5 +1,5 @@
 use super::{SharedBus, SpiExclusiveDevice};
-use crate::spi::{CommType, Pins, PinsFull, PinsNoCS, SpiBus, SpiConfig, SpiX};
+use crate::spi::{CommType, Pins, PinsFull, PinsNoCS, SpiBus, SpiConfig, SpiX, WatermarkValue};
 use core::cell::RefCell;
 use core::future::poll_fn;
 use core::task::{Poll, Waker};
@@ -62,7 +62,7 @@ impl<SPI: SpiX, PINS> SpiBus<SPI, PINS> {
                     let spiwaker = &mut SPI_WAKERS.borrow_ref_mut(cs)[SPI::SPI_INDEX];
                     *spiwaker = Some(cx.waker().clone());
                 });
-                self.set_watermark(CommType::Rx, 0);
+                self.set_watermark(CommType::Rx, WatermarkValue::W0);
                 self.enable_interrupt(CommType::Rx);
                 Poll::Pending
             }
@@ -84,7 +84,7 @@ impl<SPI: SpiX, PINS> SpiBus<SPI, PINS> {
                     let spiwaker = &mut SPI_WAKERS.borrow_ref_mut(cs)[SPI::SPI_INDEX];
                     *spiwaker = Some(cx.waker().clone())
                 });
-                self.set_watermark(CommType::Tx, 7);
+                self.set_watermark(CommType::Tx, WatermarkValue::W7);
                 self.enable_interrupt(CommType::Tx);
                 Poll::Pending
             }
@@ -223,7 +223,7 @@ impl<SPI: SpiX, PINS: PinsFull<SPI>> spi::SpiBus for SpiBus<SPI, PINS> {
                     let spiwaker = &mut SPI_WAKERS.borrow_ref_mut(cs)[SPI::SPI_INDEX];
                     *spiwaker = Some(cx.waker().clone())
                 });
-                self.set_watermark(CommType::Tx, 1);
+                self.set_watermark(CommType::Tx, WatermarkValue::W1);
                 self.enable_interrupt(CommType::Tx);
                 Poll::Pending
             }
