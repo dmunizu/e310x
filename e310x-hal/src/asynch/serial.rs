@@ -31,7 +31,7 @@ static UART_WAKERS: Mutex<RefCell<[WakerPair; N_UARTS]>> =
 
 fn on_irq<UART: UartX>(uart: &UART) {
     //Check if Rx interrupt is enabled
-    if uart.ie().read().rxwm().bit_is_set() {
+    if uart.ie().read().rxwm().bit_is_set() && uart.ip().read().rxwm().bit_is_set() {
         // Wake the waker if it exists
         critical_section::with(|cs| {
             let uartwaker = &mut UART_WAKERS.borrow_ref_mut(cs)[UART::UART_INDEX].0;
@@ -46,7 +46,7 @@ fn on_irq<UART: UartX>(uart: &UART) {
         });
     }
     //Check if Tx interrupt is enabled
-    if uart.ie().read().txwm().bit_is_set() {
+    if uart.ie().read().txwm().bit_is_set() && uart.ip().read().txwm().bit_is_set() {
         // Wake the waker if it exists
         critical_section::with(|cs| {
             let uartwaker = &mut UART_WAKERS.borrow_ref_mut(cs)[UART::UART_INDEX].1;
