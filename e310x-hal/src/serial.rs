@@ -467,11 +467,11 @@ impl<UART: UartX, TX: TxPin<UART>, RX: RxPin<UART>> Serial<UART, TX, RX> {
     /// Change the Watermark Register for the UART transmission to the specified value.
     pub fn set_watermark(&mut self, comm_type: CommType, watermark: WatermarkValue) {
         match comm_type {
-            CommType::Tx => self.tx.set_watermark(watermark.into()),
-            CommType::Rx => self.rx.set_watermark(watermark.into()),
+            CommType::Tx => self.tx.set_watermark(watermark),
+            CommType::Rx => self.rx.set_watermark(watermark),
             CommType::TxRx => {
-                self.tx.set_watermark(watermark.into());
-                self.rx.set_watermark(watermark.into());
+                self.tx.set_watermark(watermark);
+                self.rx.set_watermark(watermark);
             }
         }
     }
