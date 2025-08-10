@@ -400,7 +400,7 @@ impl<SPI: SpiX, PINS: PinsFull<SPI>> spi::SpiBus for SpiBus<SPI, PINS> {
             while write_count < len {
                 let mut byte = 0;
                 critical_section::with(|cs| {
-                    byte = unsafe { *words.borrow_ref_mut(cs).get_unchecked_mut(write_count) };
+                    byte = unsafe { *words.borrow_ref(cs).get_unchecked(write_count) };
                 });
                 match self.write_output_async(byte).await {
                     Ok(()) => {

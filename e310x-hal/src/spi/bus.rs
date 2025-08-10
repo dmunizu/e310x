@@ -161,6 +161,14 @@ impl<SPI: SpiX, PINS> SpiBus<SPI, PINS> {
         }
     }
 
+    /// Get the Watermark Registers value.
+    pub fn get_watermarks(&self) -> (u8, u8) {
+        (
+            self.spi.txmark().read().txmark().bits(),
+            self.spi.rxmark().read().rxmark().bits(),
+        )
+    }
+
     /// Check if the SPI interrupt is enabled for the specified communication type.
     pub fn is_interrupt_enabled(&self, comm_type: CommType) -> bool {
         // Match the CommType enum
@@ -169,6 +177,18 @@ impl<SPI: SpiX, PINS> SpiBus<SPI, PINS> {
             CommType::Rx => self.spi.ie().read().rxwm().bit_is_set(),
             CommType::TxRx => {
                 self.spi.ie().read().txwm().bit_is_set() && self.spi.ie().read().rxwm().bit_is_set()
+            }
+        }
+    }
+
+    /// Returns true if the interrupt flag is set for the specified communication type.
+    pub fn is_interrupt_pending(&self, comm_type: CommType) -> bool {
+        // Match the CommType enum
+        match comm_type {
+            CommType::Tx => self.spi.ip().read().txwm().bit_is_set(),
+            CommType::Rx => self.spi.ip().read().rxwm().bit_is_set(),
+            CommType::TxRx => {
+                self.spi.ip().read().txwm().bit_is_set() && self.spi.ip().read().rxwm().bit_is_set()
             }
         }
     }

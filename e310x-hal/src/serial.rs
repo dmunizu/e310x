@@ -121,9 +121,19 @@ impl<UART: UartX, PIN: RxPin<UART>> Rx<UART, PIN> {
         });
     }
 
+    /// Get the Watermark Register value for the UART reception.
+    pub fn get_watermark(&self) -> u8 {
+        self.uart.rxctrl().read().counter().bits()
+    }
+
     /// Check if the UART interrupt is enabled for reception.
     pub fn is_interrupt_enabled(&self) -> bool {
         self.uart.ie().read().rxwm().bit_is_set()
+    }
+
+    /// Returns true if the interrupt flag is set.
+    pub fn is_interrupt_pending(&self) -> bool {
+        self.uart.ip().read().rxwm().bit_is_set()
     }
 
     /// Enables the external interrupt source for the UART.
@@ -259,9 +269,19 @@ impl<UART: UartX, PIN: TxPin<UART>> Tx<UART, PIN> {
         });
     }
 
+    /// Get the Watermark Register value for the UART transmission.
+    pub fn get_watermark(&self) -> u8 {
+        self.uart.txctrl().read().counter().bits()
+    }
+
     /// Check if the UART interrupt is enabled for transmission.
     pub fn is_interrupt_enabled(&self) -> bool {
         self.uart.ie().read().txwm().bit_is_set()
+    }
+
+    /// Returns true if the interrupt flag is set.
+    pub fn is_interrupt_pending(&self) -> bool {
+        self.uart.ip().read().txwm().bit_is_set()
     }
 
     /// Enables the external interrupt source for the UART.
@@ -476,12 +496,27 @@ impl<UART: UartX, TX: TxPin<UART>, RX: RxPin<UART>> Serial<UART, TX, RX> {
         }
     }
 
+    /// Get the Watermark Registers value.
+    pub fn get_watermarks(&self) -> (u8, u8) {
+        (self.tx.get_watermark(), self.rx.get_watermark())
+    }
+
     /// Check if the UART interrupt is enabled for transmission.
     pub fn is_interrupt_enabled(&self, comm_type: CommType) -> bool {
         match comm_type {
             CommType::Tx => self.tx.is_interrupt_enabled(),
             CommType::Rx => self.rx.is_interrupt_enabled(),
             CommType::TxRx => self.tx.is_interrupt_enabled() && self.rx.is_interrupt_enabled(),
+        }
+    }
+
+    /// Returns true if the interrupt flag is set for the specified communication type.
+    pub fn is_interrupt_pending(&self, comm_type: CommType) -> bool {
+        // Match the CommType enum
+        match comm_type {
+            CommType::Tx => self.tx.is_interrupt_pending(),
+            CommType::Rx => self.rx.is_interrupt_pending(),
+            CommType::TxRx => self.tx.is_interrupt_pending() && self.rx.is_interrupt_pending(),
         }
     }
 

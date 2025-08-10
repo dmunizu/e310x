@@ -141,6 +141,11 @@ impl<I2C: I2cX, PINS> I2c<I2C, PINS> {
         self.i2c.cr().write(|w| w.iack().set_bit());
     }
 
+    /// Returns true if the interrupt flag is set.
+    pub fn is_interrupt_pending(&self) -> bool {
+        self.i2c.sr().read().if_().bit_is_set()
+    }
+
     /// Check if the I2C interrupt is enabled.
     #[inline]
     pub fn is_interrupt_enabled(&self) -> bool {
