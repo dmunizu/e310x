@@ -1,6 +1,5 @@
-//! Basic blinking LEDs example using mtime/mtimecmp registers for "sleep" in a loop.
-//! Blinks each led once and goes to the next one.
-//! This example uses synchronous UART and only tests asynchronous Delay.
+//! Basic example where the LED changes its state according to a button.
+//! This example uses synchronous UART and only tests asynchronous GPIO.
 
 #![no_std]
 #![no_main]

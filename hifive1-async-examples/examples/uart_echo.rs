@@ -1,3 +1,5 @@
+//! Simple echo example for the asynchronous UART
+
 #![no_std]
 #![no_main]
 

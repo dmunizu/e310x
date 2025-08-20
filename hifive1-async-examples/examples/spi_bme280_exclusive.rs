@@ -1,5 +1,6 @@
-//! Sample example for the MAX3010x pulse oximeter and heart rate sensor
-//! using the I2C interface.
+//! Sample example for the BME280 temperature, pressure and humidity sensor.
+//! using the SPI interface.
+//! This example uses synchronous UART and only tests asynchronous SPI.
 
 #![no_std]
 #![no_main]
