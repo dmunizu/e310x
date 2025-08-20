@@ -54,7 +54,7 @@ async fn echo_task(mut tx: Tx<Uart0, Pin17<IOF0<NoInvert>>>) {
 }
 
 #[embassy_executor::main]
-async fn main(_spawner: Spawner) {
+async fn main(spawner: Spawner) {
     let dr = DeviceResources::take().unwrap();
     let cp = dr.core_peripherals;
     let p = dr.peripherals;
@@ -83,6 +83,6 @@ async fn main(_spawner: Spawner) {
     let (tx, rx) = serial.split();
 
     // Spawn the read and write tasks
-    _spawner.spawn(read_task(rx)).unwrap();
-    _spawner.spawn(echo_task(tx)).unwrap();
+    spawner.spawn(read_task(rx)).unwrap();
+    spawner.spawn(echo_task(tx)).unwrap();
 }
