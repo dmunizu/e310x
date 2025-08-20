@@ -4,7 +4,6 @@ use embassy_sync::blocking_mutex::raw::RawMutex;
 use embassy_sync::mutex::{Mutex, MutexGuard};
 use embedded_hal_async::delay::DelayNs;
 
-/// Newtype for RefCell<Spi> locked behind a Mutex.
 /// Used to hold the [SpiBus] instance so it can be used for multiple [SpiSharedDevice] instances.
 pub struct SharedBus<M: RawMutex, SPI, PINS>(Mutex<M, SpiBus<SPI, PINS>>);
 

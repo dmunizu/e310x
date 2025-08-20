@@ -22,7 +22,7 @@ rtt-target = "0.6.1"
 panic-rtt-target = "0.2.0"
 
 # Specific devices
-embedded-devices = { version = "0.9.13", features = ["async", "bosch-bme280"] }
+embedded-devices = { git="https://github.com/dmunizu/embedded-devices-hifive1-async-examples.git", features = ["async", "bosch-bme280"] }
 uom = {version = "0.36.0", default-features = false, features = ["f32", "si"]}
 [features]
 v-trap = ["hifive1/v-trap"]

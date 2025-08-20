@@ -80,7 +80,7 @@ pub(crate) fn schedule_machine_timer(mtimer: &MTIMER<Clint>) {
 /// When pushed to the timer queue via the `riscv_peripheral_aclint_push_timer` function,
 /// this entry provides the necessary information to adapt it to the timer queue implementation.
 #[derive(Debug)]
-pub struct Timer {
+pub(crate) struct Timer {
     expires: u64,
     waker: Waker,
 }
@@ -94,13 +94,13 @@ impl Timer {
 
     /// Returns the expiration tick of the timer.
     #[inline]
-    pub const fn expires(&self) -> u64 {
+    const fn expires(&self) -> u64 {
         self.expires
     }
 
     /// Consumes the timer and wakes its associated waker.
     #[inline]
-    pub fn wake(self) {
+    fn wake(self) {
         self.waker.wake();
     }
 }
