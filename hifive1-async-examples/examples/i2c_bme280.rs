@@ -73,8 +73,8 @@ async fn main(_spawner: Spawner) -> ! {
     bme280
         .configure(Configuration {
             temperature_oversampling: Oversampling::X_16,
-            pressure_oversampling: Oversampling::X_16,
-            humidity_oversampling: Oversampling::X_16,
+            pressure_oversampling: Oversampling::Disabled,
+            humidity_oversampling: Oversampling::Disabled,
             iir_filter: IIRFilter::Disabled,
         })
         .await
@@ -82,7 +82,8 @@ async fn main(_spawner: Spawner) -> ! {
     loop {
         let measurements = bme280.measure(&mut delay).await.unwrap();
         let temp = measurements.temperature.get::<degree_celsius>().to_f32();
-        sprintln!("Current temperature: {:?} Celsius", temp.unwrap());
+        sprintln!("Current temperature: {:.2} Celsius", temp.unwrap());
+
         delay.delay_ms(STEP).await;
     }
 }
