@@ -97,6 +97,9 @@ macro_rules! gpio_async {
                         return Err(DigitalError::AlreadyWaiting);
                     }
 
+                    // Clear previous high interrupts for the pin.
+                    self.clear_interrupt(EventType::High);
+
                     // Enable the high interrupt for the pin.
                     self.enable_interrupt(EventType::High);
 
@@ -128,6 +131,9 @@ macro_rules! gpio_async {
                         return Err(DigitalError::AlreadyWaiting);
                     }
 
+                    // Clear previous low interrupts for the pin.
+                    self.clear_interrupt(EventType::Low);
+
                     // Enable the low interrupt for the pin.
                     self.enable_interrupt(EventType::Low);
 
@@ -153,6 +159,9 @@ macro_rules! gpio_async {
                     }){
                         return Err(DigitalError::AlreadyWaiting);
                     }
+
+                    // Clear previous rising edge interrupts for the pin.
+                    self.clear_interrupt(EventType::Rise);
 
                     // Enable the rising edge interrupt for the pin.
                     self.enable_interrupt(EventType::Rise);
@@ -180,6 +189,9 @@ macro_rules! gpio_async {
                         return Err(DigitalError::AlreadyWaiting);
                     }
 
+                    // Clear previous falling edge interrupts for the pin.
+                    self.clear_interrupt(EventType::Fall);
+
                     // Enable the falling edge interrupt for the pin.
                     self.enable_interrupt(EventType::Fall);
 
@@ -205,6 +217,9 @@ macro_rules! gpio_async {
                     }){
                         return Err(DigitalError::AlreadyWaiting);
                     }
+
+                    // Clear previous rising and falling edge interrupts for the pin.
+                    self.clear_interrupt(EventType::BothEdges);
 
                     // Enable the rising and falling edge interrupts for the pin.
                     self.enable_interrupt(EventType::BothEdges);
