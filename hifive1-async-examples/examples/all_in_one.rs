@@ -74,7 +74,7 @@ static TX_MUTEX: Mutex<CriticalSectionRawMutex, Option<TxType>> = Mutex::new(Non
 async fn read_task(mut rx: RxType) {
     loop {
         // Temporary buffer
-        let mut buf = [0u8; 128];
+        let mut buf = [0u8; 20];
         // Read
         let n = _eioa_Read::read(&mut rx, &mut buf).await.unwrap();
 
@@ -342,9 +342,16 @@ async fn peripheral_config() -> (
 }
 
 async fn async_print<const N: usize>(string: String<N>) {
+    // Convert string to bytes
     let buf = string.as_bytes();
-    let count = buf.iter().position(|&b| b == b'\n').unwrap_or(buf.len()) + 1;
+    let count = buf
+        .iter()
+        .position(|&b| b == b'\n')
+        .map(|pos| pos + 1)
+        .unwrap_or(buf.len());
     let mut buf = &buf[..count];
+
+    // Get Mutex and write to UART
     let mut guard = TX_MUTEX.lock().await;
     let tx = guard.as_mut().unwrap();
     while !buf.is_empty() {
