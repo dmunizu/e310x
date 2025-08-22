@@ -8,7 +8,6 @@
 #![no_std]
 #![no_main]
 
-use core::cell::RefCell;
 use core::fmt::Write;
 use core::str;
 use embassy_executor::Spawner;
@@ -68,8 +67,7 @@ type I2cType = I2c<
 static I2C_SIGNAL: Signal<CriticalSectionRawMutex, TaskCommand> = Signal::new();
 static SPI_SIGNAL: Signal<CriticalSectionRawMutex, TaskCommand> = Signal::new();
 static LED_SIGNAL: Signal<CriticalSectionRawMutex, bool> = Signal::new();
-static TX_MUTEX: Mutex<CriticalSectionRawMutex, RefCell<Option<TxType>>> =
-    Mutex::new(RefCell::new(None));
+static TX_MUTEX: Mutex<CriticalSectionRawMutex, Option<TxType>> = Mutex::new(None);
 
 /// Continuously read up to newline and activate the corresponding task.
 #[embassy_executor::task]
@@ -129,16 +127,7 @@ async fn temp_task(i2c: I2cType, mut delay: Delay) {
                 if let Ok(()) =
                     writeln!(string, "Current temperature: {:.2} Celsius", temp.unwrap())
                 {
-                    let buf = string.as_bytes();
-                    let count = buf.iter().position(|&b| b == b'\n').unwrap_or(buf.len()) + 1;
-                    let mut buf = &buf[..count];
-                    let guard = TX_MUTEX.lock().await;
-                    let mut tx = guard.take().unwrap();
-                    while !buf.is_empty() {
-                        let written = _eioa_Write::write(&mut tx, buf).await.unwrap();
-                        buf = &buf[written..];
-                    }
-                    *guard.borrow_mut() = Some(tx);
+                    async_print(string).await;
                 }
 
                 // Wait
@@ -188,16 +177,7 @@ async fn hum_task(spi_device: SpiDeviceType, mut delay: Delay) {
                 // Async Print
                 let mut string: String<26> = String::new();
                 if let Ok(()) = writeln!(string, "Current humidity: {:.2}%", humidity.unwrap()) {
-                    let buf = string.as_bytes();
-                    let count = buf.iter().position(|&b| b == b'\n').unwrap_or(buf.len()) + 1;
-                    let mut buf = &buf[..count];
-                    let guard = TX_MUTEX.lock().await;
-                    let mut tx = guard.take().unwrap();
-                    while !buf.is_empty() {
-                        let written = _eioa_Write::write(&mut tx, buf).await.unwrap();
-                        buf = &buf[written..];
-                    }
-                    *guard.borrow_mut() = Some(tx);
+                    async_print(string).await;
                 }
 
                 // Wait
@@ -235,17 +215,7 @@ async fn led_task(led: LedType, mut button: ButtonType) {
             // Async Print
             let mut string: String<17> = String::new();
             if let Ok(()) = writeln!(string, "LED State: {:?}", led_state) {
-                let buf = string.as_bytes();
-                let count = buf.iter().position(|&b| b == b'\n').unwrap_or(buf.len()) + 1;
-                let mut buf = &buf[..count];
-                let guard = TX_MUTEX.lock().await;
-                let mut tx = guard.take().unwrap();
-
-                while !buf.is_empty() {
-                    let written = _eioa_Write::write(&mut tx, buf).await.unwrap();
-                    buf = &buf[written..];
-                }
-                *guard.borrow_mut() = Some(tx);
+                async_print(string).await;
             }
         }
     };
@@ -269,17 +239,7 @@ async fn led_task(led: LedType, mut button: ButtonType) {
             // Async Print
             let mut string: String<17> = String::new();
             if let Ok(()) = writeln!(string, "LED State: {:?}", led_state) {
-                let buf = string.as_bytes();
-                let count = buf.iter().position(|&b| b == b'\n').unwrap_or(buf.len()) + 1;
-                let mut buf = &buf[..count];
-                let guard = TX_MUTEX.lock().await;
-                let mut tx = guard.take().unwrap();
-
-                while !buf.is_empty() {
-                    let written = _eioa_Write::write(&mut tx, buf).await.unwrap();
-                    buf = &buf[written..];
-                }
-                *guard.borrow_mut() = Some(tx);
+                async_print(string).await;
             }
 
             // Rebound delay
@@ -295,8 +255,8 @@ async fn main(spawner: Spawner) {
     let (i2c_delay, spi_delay, led, button, rx, spi_device, i2c) = peripheral_config().await;
     // Spawn the read and write tasks
     spawner.spawn(read_task(rx)).unwrap();
-    spawner.spawn(hum_task(spi_device, spi_delay)).unwrap();
     spawner.spawn(temp_task(i2c, i2c_delay)).unwrap();
+    spawner.spawn(hum_task(spi_device, spi_delay)).unwrap();
     spawner.spawn(led_task(led, button)).unwrap();
 }
 
@@ -374,9 +334,21 @@ async fn peripheral_config() -> (
     let spi_device = spi_bus.new_device_async(&spi_cfg, spi_device_delay);
 
     // Store TX in a mutex
-    let guard = TX_MUTEX.lock().await;
-    *guard.borrow_mut() = Some(tx);
+    let mut guard = TX_MUTEX.lock().await;
+    *guard = Some(tx);
 
     // Return the rest of the peripherals
     (i2c_delay, spi_delay, led, button, rx, spi_device, i2c)
+}
+
+async fn async_print<const N: usize>(string: String<N>) {
+    let buf = string.as_bytes();
+    let count = buf.iter().position(|&b| b == b'\n').unwrap_or(buf.len()) + 1;
+    let mut buf = &buf[..count];
+    let mut guard = TX_MUTEX.lock().await;
+    let tx = guard.as_mut().unwrap();
+    while !buf.is_empty() {
+        let written = _eioa_Write::write(tx, buf).await.unwrap();
+        buf = &buf[written..];
+    }
 }
