@@ -1,3 +1,5 @@
+//! Simple echo example for the asynchronous UART
+
 #![no_std]
 #![no_main]
 
@@ -19,14 +21,14 @@ use hifive1::{
     pin,
 };
 extern crate panic_halt;
-static SHARED_CHANNEL: Channel<CriticalSectionRawMutex, [u8; 128], 1> = Channel::new();
+static SHARED_CHANNEL: Channel<CriticalSectionRawMutex, [u8; 20], 1> = Channel::new();
 
 /// Continuously read up to newline and send the buffer over the channel.
 #[embassy_executor::task]
 async fn read_task(mut rx: Rx<Uart0, Pin16<IOF0<NoInvert>>>) {
     loop {
         // Temporary buffer
-        let mut buf = [0u8; 128];
+        let mut buf = [0u8; 20];
 
         // Read
         _eioa_Read::read(&mut rx, &mut buf).await.unwrap();
@@ -44,7 +46,11 @@ async fn echo_task(mut tx: Tx<Uart0, Pin17<IOF0<NoInvert>>>) {
         let buf = SHARED_CHANNEL.receive().await;
 
         // Search for a newline character in buf
-        let count = buf.iter().position(|&b| b == b'\n').unwrap_or(buf.len());
+        let count = buf
+            .iter()
+            .position(|&b| b == b'\n')
+            .map(|pos| pos + 1)
+            .unwrap_or(buf.len());
 
         // Echo back
         _eioa_Write::write(&mut tx, &buf[..count]).await.unwrap();
@@ -52,7 +58,7 @@ async fn echo_task(mut tx: Tx<Uart0, Pin17<IOF0<NoInvert>>>) {
 }
 
 #[embassy_executor::main]
-async fn main(_spawner: Spawner) {
+async fn main(spawner: Spawner) {
     let dr = DeviceResources::take().unwrap();
     let cp = dr.core_peripherals;
     let p = dr.peripherals;
@@ -81,6 +87,6 @@ async fn main(_spawner: Spawner) {
     let (tx, rx) = serial.split();
 
     // Spawn the read and write tasks
-    _spawner.spawn(read_task(rx)).unwrap();
-    _spawner.spawn(echo_task(tx)).unwrap();
+    spawner.spawn(read_task(rx)).unwrap();
+    spawner.spawn(echo_task(tx)).unwrap();
 }

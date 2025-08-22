@@ -1,5 +1,4 @@
-//! Basic blinking LEDs example using mtime/mtimecmp registers for "sleep" in a loop.
-//! Blinks each led once and goes to the next one.
+//! Basic blinking LEDs example using mtime/mtimecmp registers for delay in a loop.
 //! This example uses synchronous UART and only tests asynchronous Delay.
 
 #![no_std]
