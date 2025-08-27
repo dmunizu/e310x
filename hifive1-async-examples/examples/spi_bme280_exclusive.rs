@@ -8,6 +8,7 @@
 use embassy_executor::Spawner;
 use embedded_devices::devices::bosch::bme280::registers::{IIRFilter, Oversampling};
 use embedded_devices::devices::bosch::bme280::{BME280Async, Configuration};
+use embedded_devices::sensor::OneshotSensorAsync;
 use hifive1::{
     clock,
     hal::{
@@ -20,8 +21,7 @@ use hifive1::{
     },
     pin, sprintln,
 };
-use uom::num_traits::ToPrimitive;
-use uom::si::thermodynamic_temperature::degree_celsius;
+use uom::si::{pressure::pascal, ratio::percent, thermodynamic_temperature::degree_celsius};
 extern crate panic_halt;
 
 #[embassy_executor::main]
@@ -76,21 +76,39 @@ async fn main(_spawner: Spawner) -> ! {
     let spi_device = spi_bus.new_device_async(&spi_cfg, spi_delay);
 
     //BME280 sensor configuration
-    let mut bme280 = BME280Async::new_spi(spi_device);
-    bme280.init(&mut delay).await.unwrap();
+    let bme280_delay = Delay::new(mtimer);
+    let mut bme280 = BME280Async::new_spi(bme280_delay, spi_device);
+    bme280.init().await.unwrap();
     bme280
         .configure(Configuration {
             temperature_oversampling: Oversampling::X_16,
-            pressure_oversampling: Oversampling::Disabled,
-            humidity_oversampling: Oversampling::Disabled,
+            pressure_oversampling: Oversampling::X_16,
+            humidity_oversampling: Oversampling::X_16,
             iir_filter: IIRFilter::Disabled,
         })
         .await
         .unwrap();
     loop {
-        let measurements = bme280.measure(&mut delay).await.unwrap();
-        let temp = measurements.temperature.get::<degree_celsius>().to_f32();
-        sprintln!("Current temperature: {:.2} Celsius", temp.unwrap());
+        // Measure
+        let measurement = bme280.measure().await.unwrap();
+
+        // Retrieve the returned temperature as °C, pressure in Pa and humidity in %RH
+        let temp = measurement.temperature.get::<degree_celsius>();
+        let pressure = measurement
+            .pressure
+            .expect("should be enabled")
+            .get::<pascal>();
+        let humidity = measurement
+            .humidity
+            .expect("should be enabled")
+            .get::<percent>();
+        sprintln!(
+            "Current measurement: {:.2} Celsius, {:.2} Pa, {:.2}%RH",
+            temp,
+            pressure,
+            humidity
+        );
+
         delay.delay_ms(STEP).await;
     }
 }

@@ -18,6 +18,7 @@ use embedded_devices::devices::bosch::bme280::{
     registers::{IIRFilter, Oversampling},
     {BME280Async, Configuration, address::Address},
 };
+use embedded_devices::sensor::OneshotSensorAsync;
 use heapless::String;
 use hifive1::{
     clock,
@@ -33,10 +34,7 @@ use hifive1::{
     },
     pin,
 };
-use uom::{
-    num_traits::ToPrimitive,
-    si::{ratio::percent, thermodynamic_temperature::degree_celsius},
-};
+use uom::si::{ratio::percent, thermodynamic_temperature::degree_celsius};
 extern crate panic_halt;
 
 #[derive(PartialEq)]
@@ -94,10 +92,10 @@ async fn read_task(mut rx: RxType) {
 
 /// Wait for start signal and start I2C temperature measurement until a stop is received.
 #[embassy_executor::task]
-async fn temp_task(i2c: I2cType, mut delay: Delay) {
+async fn temp_task(i2c: I2cType, delay: Delay) {
     //I2C BME280 sensor configuration
-    let mut bme280 = BME280Async::new_i2c(i2c, Address::Primary);
-    bme280.init(&mut delay).await.unwrap();
+    let mut bme280 = BME280Async::new_i2c(delay, i2c, Address::Primary);
+    bme280.init().await.unwrap();
     bme280
         .configure(Configuration {
             temperature_oversampling: Oversampling::X_16,
@@ -119,14 +117,12 @@ async fn temp_task(i2c: I2cType, mut delay: Delay) {
         let measure_temp = async {
             loop {
                 // Measure
-                let measurements = bme280.measure(&mut delay).await.unwrap();
-                let temp = measurements.temperature.get::<degree_celsius>().to_f32();
+                let measurement = bme280.measure().await.unwrap();
+                let temp = measurement.temperature.get::<degree_celsius>();
 
                 // Async Print
                 let mut string: String<40> = String::new();
-                if let Ok(()) =
-                    writeln!(string, "Current temperature: {:.2} Celsius", temp.unwrap())
-                {
+                if let Ok(()) = writeln!(string, "Current temperature: {:.2} Celsius", temp) {
                     async_print(string).await;
                 }
 
@@ -142,10 +138,10 @@ async fn temp_task(i2c: I2cType, mut delay: Delay) {
 
 /// Wait for start signal and start SPI humidity measurement until a stop is received.
 #[embassy_executor::task]
-async fn hum_task(spi_device: SpiDeviceType, mut delay: Delay) {
+async fn hum_task(spi_device: SpiDeviceType, delay: Delay) {
     //SPI BME280 sensor configuration
-    let mut bme280 = BME280Async::new_spi(spi_device);
-    bme280.init(&mut delay).await.unwrap();
+    let mut bme280 = BME280Async::new_spi(delay, spi_device);
+    bme280.init().await.unwrap();
     bme280
         .configure(Configuration {
             temperature_oversampling: Oversampling::Disabled,
@@ -167,16 +163,15 @@ async fn hum_task(spi_device: SpiDeviceType, mut delay: Delay) {
         let measure_hum = async {
             loop {
                 // Measure
-                let measurements = bme280.measure(&mut delay).await.unwrap();
-                let humidity = measurements
+                let measurement = bme280.measure().await.unwrap();
+                let humidity = measurement
                     .humidity
                     .expect("should be enabled")
-                    .get::<percent>()
-                    .to_f32();
+                    .get::<percent>();
 
                 // Async Print
-                let mut string: String<26> = String::new();
-                if let Ok(()) = writeln!(string, "Current humidity: {:.2}%", humidity.unwrap()) {
+                let mut string: String<28> = String::new();
+                if let Ok(()) = writeln!(string, "Current humidity: {:.2}%RH", humidity) {
                     async_print(string).await;
                 }
 
