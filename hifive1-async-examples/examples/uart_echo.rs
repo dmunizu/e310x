@@ -23,7 +23,7 @@ use hifive1::{
 extern crate panic_halt;
 static SHARED_CHANNEL: Channel<CriticalSectionRawMutex, [u8; 20], 1> = Channel::new();
 
-/// Continuously read up to newline and send the buffer over the channel.
+/// Continuously read and send the buffer over the channel.
 #[embassy_executor::task]
 async fn read_task(mut rx: Rx<Uart0, Pin16<IOF0<NoInvert>>>) {
     loop {
