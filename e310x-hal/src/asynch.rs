@@ -13,5 +13,5 @@ pub mod serial;
 pub mod spi;
 
 #[cfg(feature = "embassy")]
-#[path = "asynch/embassy/time-driver.rs"]
+#[path = "asynch/embassy/time_driver.rs"]
 pub mod time_driver;

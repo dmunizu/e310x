@@ -2,7 +2,7 @@
 //!
 //! This module provides the driver for embassy-time, keeping track of time and managing the
 //! wait queue.
-use crate::asynch::delay::{riscv_peripheral_aclint_push_timer, schedule_machine_timer, Timer};
+use crate::asynch::delay::{aclint_push_timer, schedule_machine_timer, Timer};
 use core::task::Waker;
 use e310x::Clint;
 use embassy_time_driver::Driver;
@@ -18,7 +18,7 @@ impl Driver for MyDriver {
     fn schedule_wake(&self, at: u64, waker: &Waker) {
         let timer = Timer::new(at, waker.clone());
         let mtimer = unsafe { Clint::steal() }.mtimer();
-        let _ = riscv_peripheral_aclint_push_timer(timer);
+        let _ = aclint_push_timer(timer);
         // Schedule machine timer interrupt
         schedule_machine_timer(&mtimer);
     }

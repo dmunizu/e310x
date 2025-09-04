@@ -26,7 +26,7 @@ static TIMER_QUEUE: Mutex<RefCell<BinaryHeap<Timer, Min, N_TIMERS>>> =
 /// Tries to push a new timer to the timer queue assigned to the `MTIMER` register for the current HART ID.
 /// If it fails (e.g., the timer queue is full), it returns back the timer that failed to be pushed.
 #[inline]
-pub(crate) fn riscv_peripheral_aclint_push_timer(t: Timer) -> Result<(), Timer> {
+pub(crate) fn aclint_push_timer(t: Timer) -> Result<(), Timer> {
     critical_section::with(|cs| {
         let timer_queue = &mut *TIMER_QUEUE.borrow_ref_mut(cs);
         timer_queue.push(t)
@@ -38,7 +38,7 @@ pub(crate) fn riscv_peripheral_aclint_push_timer(t: Timer) -> Result<(), Timer> 
 /// it returns `None`. Alternatively, if the queue is not empty but the earliest timer has not expired
 /// yet, it returns `Some(next_expires)` where `next_expires` is the tick at which this timer expires.
 #[inline]
-fn riscv_peripheral_aclint_wake_timers(current_tick: u64) -> Option<u64> {
+fn aclint_wake_timers(current_tick: u64) -> Option<u64> {
     critical_section::with(|cs| {
         let timer_queue = &mut *TIMER_QUEUE.borrow_ref_mut(cs);
         let mut next_expires = None;
@@ -68,7 +68,7 @@ fn machine_timer() {
 pub(crate) fn schedule_machine_timer(mtimer: &MTIMER<Clint>) {
     let current_tick = mtimer.mtime().read();
     mtimer.disable();
-    if let Some(next_expires) = riscv_peripheral_aclint_wake_timers(current_tick) {
+    if let Some(next_expires) = aclint_wake_timers(current_tick) {
         debug_assert!(next_expires > current_tick);
         mtimer.mtimecmp(Hart::H0).write(next_expires);
         unsafe { mtimer.enable() };
@@ -77,7 +77,7 @@ pub(crate) fn schedule_machine_timer(mtimer: &MTIMER<Clint>) {
 
 /// Timer queue entry.
 ///
-/// When pushed to the timer queue via the `riscv_peripheral_aclint_push_timer` function,
+/// When pushed to the timer queue via the `aclint_push_timer` function,
 /// this entry provides the necessary information to adapt it to the timer queue implementation.
 #[derive(Debug)]
 pub(crate) struct Timer {
@@ -150,7 +150,7 @@ impl Delay {
                     // Push timer to queue only on first pending poll
                     pushed = true;
                     let timer = Timer::new(expires, cx.waker().clone());
-                    let _ = riscv_peripheral_aclint_push_timer(timer);
+                    let _ = aclint_push_timer(timer);
                     // Schedule machine timer interrupt
                     schedule_machine_timer(&self.mtimer);
                 }
