@@ -2,7 +2,7 @@
 //! The UART Rx controls tasks that periodically show temperature through an I2C controlled
 //! BME280 and humidity through an SPI controlled BME280.
 //! Another task checks the button to change the state of an LED at each press.
-//! NOTE: An LED has to be connected to pin 9 and a button to pin 10. The Board LED cannot be used as it collides
+//! NOTE: An LED has to be connected to pin 10 and a button to pin 9. The Board LED cannot be used as it collides
 //! with the SPI SCK in the RED-V RedBoard.
 
 #![no_std]
@@ -32,7 +32,6 @@ use hifive1::{
         serial::{Rx, Serial, Tx},
         spi::{MODE_0, SpiBus, SpiConfig},
     },
-    pin,
 };
 use uom::si::{ratio::percent, thermodynamic_temperature::degree_celsius};
 extern crate panic_halt;
@@ -164,10 +163,7 @@ async fn hum_task(spi_device: SpiDeviceType, delay: Delay) {
             loop {
                 // Measure
                 let measurement = bme280.measure().await.unwrap();
-                let humidity = measurement
-                    .humidity
-                    .expect("should be enabled")
-                    .get::<percent>();
+                let humidity = measurement.humidity.unwrap().get::<percent>();
 
                 // Async Print
                 let mut string: String<28> = String::new();
@@ -221,10 +217,7 @@ async fn led_task(led: LedType, mut button: ButtonType) {
 
         loop {
             // Wait for button and toggle LED
-            button
-                .wait_for_rising_edge()
-                .await
-                .expect("Failed to wait for button press");
+            button.wait_for_rising_edge().await.unwrap();
             {
                 let mut led = led_mutex.lock().await;
                 led.toggle().unwrap();
@@ -290,20 +283,20 @@ async fn peripheral_config() -> (
     let spi_delay = Delay::new(mtimer);
 
     // Configure UART
-    let tx = pin!(pins, uart0_tx).into_iof0();
-    let rx = pin!(pins, uart0_rx).into_iof0();
+    let tx = pins.pin17.into_iof0();
+    let rx = pins.pin16.into_iof0();
     let serial = Serial::new(p.UART0, (tx, rx), 115_200.bps(), clocks);
 
     // I2C configuration
-    let sda = pin!(pins, i2c0_sda).into_iof0();
-    let scl = pin!(pins, i2c0_scl).into_iof0();
+    let sda = pins.pin12.into_iof0();
+    let scl = pins.pin13.into_iof0();
     let i2c = I2c::new(p.I2C0, sda, scl, Speed::Normal, clocks);
 
     // SPI configuration
-    let sck = pin!(pins, spi1_sck).into_iof0();
-    let miso = pin!(pins, spi1_miso).into_iof0();
-    let mosi = pin!(pins, spi1_mosi).into_iof0();
-    let cs = pin!(pins, spi1_ss0).into_iof0();
+    let sck = pins.pin5.into_iof0();
+    let miso = pins.pin4.into_iof0();
+    let mosi = pins.pin3.into_iof0();
+    let cs = pins.pin2.into_iof0();
     let spi_bus = SpiBus::new(p.QSPI1, (mosi, miso, sck, cs));
     let spi_cfg = SpiConfig::new(MODE_0, 1_000_000.hz(), &clocks);
 

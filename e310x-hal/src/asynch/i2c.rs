@@ -16,25 +16,6 @@ const FLAG_READ: u8 = 1;
 const FLAG_WRITE: u8 = 0;
 static I2C_WAKER: Mutex<RefCell<Option<Waker>>> = Mutex::new(RefCell::new(None));
 
-/// Interrupt handler function for I2C
-#[inline]
-fn on_irq() {
-    // Wake the waker if it exists
-    critical_section::with(|cs| {
-        let mut i2cwaker = I2C_WAKER.borrow_ref_mut(cs);
-        if let Some(waker) = i2cwaker.take() {
-            waker.wake();
-        }
-    });
-    // Disable and clear the interrupt
-    let i2c = unsafe { I2c0::steal() };
-    i2c.ctr().modify(|r, w| {
-        w.en().bit(r.en().bit_is_set());
-        w.ien().clear_bit()
-    });
-    i2c.cr().write(|w| w.iack().set_bit());
-}
-
 impl<I2C: I2cX, PINS> I2c<I2C, PINS> {
     /// Wait until the I2C bus is idle.
     async fn wait_idle_async(&mut self) {
@@ -157,5 +138,18 @@ impl<I2C: I2cX, PINS> i2c::I2c for I2c<I2C, PINS> {
 /// Interrupt Handler
 #[riscv_rt::external_interrupt(e310x::interrupt::ExternalInterrupt::I2C0)]
 fn i2c_handler() {
-    on_irq();
+    // Wake the waker if it exists
+    critical_section::with(|cs| {
+        let mut i2cwaker = I2C_WAKER.borrow_ref_mut(cs);
+        if let Some(waker) = i2cwaker.take() {
+            waker.wake();
+        }
+    });
+    // Disable and clear the interrupt
+    let i2c = unsafe { I2c0::steal() };
+    i2c.ctr().modify(|r, w| {
+        w.en().bit(r.en().bit_is_set());
+        w.ien().clear_bit()
+    });
+    i2c.cr().write(|w| w.iack().set_bit());
 }

@@ -19,7 +19,7 @@ use hifive1::{
         i2c::{I2c, Speed},
         prelude::*,
     },
-    pin, sprintln,
+    sprintln,
 };
 use uom::si::{pressure::pascal, ratio::percent, thermodynamic_temperature::degree_celsius};
 extern crate panic_halt;
@@ -35,17 +35,11 @@ async fn main(_spawner: Spawner) -> ! {
     let clocks = clock::configure(p.PRCI, p.AONCLK, 320.mhz().into());
 
     // Configure UART for stdout
-    hifive1::stdout::configure(
-        p.UART0,
-        pin!(pins, uart0_tx),
-        pin!(pins, uart0_rx),
-        115_200.bps(),
-        clocks,
-    );
+    hifive1::stdout::configure(p.UART0, pins.pin17, pins.pin16, 115_200.bps(), clocks);
 
     // I2C configuration
-    let sda = pin!(pins, i2c0_sda).into_iof0();
-    let scl = pin!(pins, i2c0_scl).into_iof0();
+    let sda = pins.pin12.into_iof0();
+    let scl = pins.pin13.into_iof0();
     let i2c = I2c::new(p.I2C0, sda, scl, Speed::Normal, clocks);
 
     // Get the MTIMER peripheral from CLINT
@@ -87,14 +81,8 @@ async fn main(_spawner: Spawner) -> ! {
 
         // Retrieve the returned temperature as °C, pressure in Pa and humidity in %RH
         let temp = measurement.temperature.get::<degree_celsius>();
-        let pressure = measurement
-            .pressure
-            .expect("should be enabled")
-            .get::<pascal>();
-        let humidity = measurement
-            .humidity
-            .expect("should be enabled")
-            .get::<percent>();
+        let pressure = measurement.pressure.unwrap().get::<pascal>();
+        let humidity = measurement.humidity.unwrap().get::<percent>();
         sprintln!(
             "Current measurement: {:.2} Celsius, {:.2} Pa, {:.2}%RH",
             temp,

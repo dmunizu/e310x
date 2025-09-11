@@ -105,15 +105,15 @@ macro_rules! gpio_async {
 
                     // Await until an interrupt indicates that the pin has transitioned high.
                     poll_fn(|cx| {
-                            if !self.is_interrupt_enabled(EventType::High) {
-                                Poll::Ready(Ok(()))
-                            } else {
-                                critical_section::with(|cs| {
-                                    let pinwaker = &mut PIN_WAKERS.borrow_ref_mut(cs)[$i];
-                                    *pinwaker = Some(cx.waker().clone());
-                                });
-                                Poll::Pending
-                            }
+                        if !self.is_interrupt_enabled(EventType::High) {
+                            Poll::Ready(Ok(()))
+                        } else {
+                            critical_section::with(|cs| {
+                                let mut pinwaker = PIN_WAKERS.borrow_ref_mut(cs);
+                                pinwaker[$i] = Some(cx.waker().clone());
+                            });
+                            Poll::Pending
+                        }
                     }).await
                 }
 
@@ -139,15 +139,15 @@ macro_rules! gpio_async {
 
                     // Await until an interrupt indicates that the pin has transitioned high.
                     poll_fn(|cx| {
-                            if !self.is_interrupt_enabled(EventType::Low) {
-                                Poll::Ready(Ok(()))
-                            } else {
-                                critical_section::with(|cs| {
-                                    let pinwaker = &mut PIN_WAKERS.borrow_ref_mut(cs)[$i];
-                                    *pinwaker = Some(cx.waker().clone());
-                                });
-                                Poll::Pending
-                            }
+                        if !self.is_interrupt_enabled(EventType::Low) {
+                            Poll::Ready(Ok(()))
+                        } else {
+                            critical_section::with(|cs| {
+                                let mut pinwaker = PIN_WAKERS.borrow_ref_mut(cs);
+                                pinwaker[$i] = Some(cx.waker().clone());
+                            });
+                            Poll::Pending
+                        }
                     }).await
                 }
 
@@ -168,15 +168,15 @@ macro_rules! gpio_async {
 
                     // Await until an interrupt indicates that the pin has transitioned high.
                     poll_fn(|cx| {
-                            if !self.is_interrupt_enabled(EventType::Rise) {
-                                Poll::Ready(Ok(()))
-                            } else {
-                                critical_section::with(|cs| {
-                                    let pinwaker = &mut PIN_WAKERS.borrow_ref_mut(cs)[$i];
-                                    *pinwaker = Some(cx.waker().clone());
-                                });
-                                Poll::Pending
-                            }
+                        if !self.is_interrupt_enabled(EventType::Rise) {
+                            Poll::Ready(Ok(()))
+                        } else {
+                            critical_section::with(|cs| {
+                                let mut pinwaker = PIN_WAKERS.borrow_ref_mut(cs);
+                                pinwaker[$i] = Some(cx.waker().clone());
+                            });
+                            Poll::Pending
+                        }
                     }).await
                 }
 
@@ -197,15 +197,15 @@ macro_rules! gpio_async {
 
                     // Await until an interrupt indicates that the pin has transitioned high.
                     poll_fn(|cx| {
-                            if !self.is_interrupt_enabled(EventType::Fall) {
-                                Poll::Ready(Ok(()))
-                            } else {
-                                critical_section::with(|cs| {
-                                    let pinwaker = &mut PIN_WAKERS.borrow_ref_mut(cs)[$i];
-                                    *pinwaker = Some(cx.waker().clone());
-                                });
-                                Poll::Pending
-                            }
+                        if !self.is_interrupt_enabled(EventType::Fall) {
+                            Poll::Ready(Ok(()))
+                        } else {
+                            critical_section::with(|cs| {
+                                let mut pinwaker = PIN_WAKERS.borrow_ref_mut(cs);
+                                pinwaker[$i] = Some(cx.waker().clone());
+                            });
+                            Poll::Pending
+                        }
                     }).await
                 }
 
@@ -226,15 +226,15 @@ macro_rules! gpio_async {
 
                     // Await until an interrupt indicates that the pin has transitioned high.
                     poll_fn(|cx| {
-                            if !self.is_interrupt_enabled(EventType::BothEdges) {
-                                Poll::Ready(Ok(()))
-                            } else {
-                                critical_section::with(|cs| {
-                                    let pinwaker = &mut PIN_WAKERS.borrow_ref_mut(cs)[$i];
-                                    *pinwaker = Some(cx.waker().clone());
-                                });
-                                Poll::Pending
-                            }
+                        if !self.is_interrupt_enabled(EventType::BothEdges) {
+                            Poll::Ready(Ok(()))
+                        } else {
+                            critical_section::with(|cs| {
+                                let mut pinwaker = PIN_WAKERS.borrow_ref_mut(cs);
+                                pinwaker[$i] = Some(cx.waker().clone());
+                            });
+                            Poll::Pending
+                        }
                     }).await
                 }
             }

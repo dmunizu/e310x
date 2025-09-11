@@ -19,7 +19,7 @@ use hifive1::{
         prelude::*,
         spi::{MODE_0, SpiBus, SpiConfig},
     },
-    pin, sprintln,
+    sprintln,
 };
 use uom::si::{pressure::pascal, ratio::percent, thermodynamic_temperature::degree_celsius};
 extern crate panic_halt;
@@ -35,13 +35,7 @@ async fn main(_spawner: Spawner) -> ! {
     let clocks = clock::configure(p.PRCI, p.AONCLK, 320.mhz().into());
 
     // Configure UART for stdout
-    hifive1::stdout::configure(
-        p.UART0,
-        pin!(pins, uart0_tx),
-        pin!(pins, uart0_rx),
-        115_200.bps(),
-        clocks,
-    );
+    hifive1::stdout::configure(p.UART0, pins.pin17, pins.pin16, 115_200.bps(), clocks);
 
     // Get the MTIMER peripheral from CLINT
     let mtimer = cp.clint.mtimer();
@@ -54,10 +48,10 @@ async fn main(_spawner: Spawner) -> ! {
     const STEP: u32 = 1000; // 1s
 
     // SPI configuration
-    let sck = pin!(pins, spi1_sck).into_iof0();
-    let miso = pin!(pins, spi1_miso).into_iof0();
-    let mosi = pin!(pins, spi1_mosi).into_iof0();
-    let cs = pin!(pins, spi1_ss0).into_iof0();
+    let sck = pins.pin5.into_iof0();
+    let miso = pins.pin4.into_iof0();
+    let mosi = pins.pin3.into_iof0();
+    let cs = pins.pin2.into_iof0();
     let spi_bus = SpiBus::new(p.QSPI1, (mosi, miso, sck, cs));
     let spi_cfg = SpiConfig::new(MODE_0, 1_000_000.hz(), &clocks);
 
@@ -94,14 +88,8 @@ async fn main(_spawner: Spawner) -> ! {
 
         // Retrieve the returned temperature as °C, pressure in Pa and humidity in %RH
         let temp = measurement.temperature.get::<degree_celsius>();
-        let pressure = measurement
-            .pressure
-            .expect("should be enabled")
-            .get::<pascal>();
-        let humidity = measurement
-            .humidity
-            .expect("should be enabled")
-            .get::<percent>();
+        let pressure = measurement.pressure.unwrap().get::<pascal>();
+        let humidity = measurement.humidity.unwrap().get::<percent>();
         sprintln!(
             "Current measurement: {:.2} Celsius, {:.2} Pa, {:.2}%RH",
             temp,

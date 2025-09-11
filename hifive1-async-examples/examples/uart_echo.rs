@@ -18,7 +18,6 @@ use hifive1::{
         prelude::*,
         serial::{Rx, Serial, Tx},
     },
-    pin,
 };
 extern crate panic_halt;
 static SHARED_CHANNEL: Channel<CriticalSectionRawMutex, [u8; 20], 1> = Channel::new();
@@ -68,8 +67,8 @@ async fn main(spawner: Spawner) {
     let clocks = clock::configure(p.PRCI, p.AONCLK, 320.mhz().into());
 
     // Configure UART
-    let tx = pin!(pins, uart0_tx).into_iof0();
-    let rx = pin!(pins, uart0_rx).into_iof0();
+    let tx = pins.pin17.into_iof0();
+    let rx = pins.pin16.into_iof0();
     let serial = Serial::new(p.UART0, (tx, rx), 115_200.bps(), clocks);
 
     // Configure interrupts

@@ -28,7 +28,7 @@ static TIMER_QUEUE: Mutex<RefCell<BinaryHeap<Timer, Min, N_TIMERS>>> =
 #[inline]
 pub(crate) fn aclint_push_timer(t: Timer) -> Result<(), Timer> {
     critical_section::with(|cs| {
-        let timer_queue = &mut *TIMER_QUEUE.borrow_ref_mut(cs);
+        let mut timer_queue = TIMER_QUEUE.borrow_ref_mut(cs);
         timer_queue.push(t)
     })
 }
@@ -40,7 +40,7 @@ pub(crate) fn aclint_push_timer(t: Timer) -> Result<(), Timer> {
 #[inline]
 fn aclint_wake_timers(current_tick: u64) -> Option<u64> {
     critical_section::with(|cs| {
-        let timer_queue = &mut *TIMER_QUEUE.borrow_ref_mut(cs);
+        let mut timer_queue = TIMER_QUEUE.borrow_ref_mut(cs);
         let mut next_expires = None;
         while let Some(t) = timer_queue.peek() {
             if t.expires() > current_tick {

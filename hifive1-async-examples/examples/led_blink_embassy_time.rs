@@ -1,4 +1,5 @@
 //! Basic blinking LEDs example using mtime/mtimecmp registers for delay in a loop.
+//! The blinking LED must be connected to pin 10 of the board
 //! This example uses synchronous UART and only tests asynchronous Delay.
 
 #![no_std]
@@ -7,9 +8,9 @@
 use embassy_executor::Spawner;
 use embassy_time::Timer;
 use hifive1::{
-    Led, clock,
+    clock,
     hal::{DeviceResources, e310x::interrupt::Hart, prelude::*},
-    pin, sprintln,
+    sprintln,
 };
 extern crate panic_halt;
 
@@ -24,17 +25,10 @@ async fn main(_spawner: Spawner) -> ! {
     let clocks = clock::configure(p.PRCI, p.AONCLK, 320.mhz().into());
 
     //Blinking LED
-    let pin = pin!(pins, led_blue);
-    let mut led = pin.into_inverted_output();
+    let mut led = pins.pin10.into_output();
 
     // Configure UART for stdout
-    hifive1::stdout::configure(
-        p.UART0,
-        pin!(pins, uart0_tx),
-        pin!(pins, uart0_rx),
-        115_200.bps(),
-        clocks,
-    );
+    hifive1::stdout::configure(p.UART0, pins.pin17, pins.pin16, 115_200.bps(), clocks);
 
     // Get Mtimer
     let mtimer = cp.clint.mtimer();
@@ -49,8 +43,8 @@ async fn main(_spawner: Spawner) -> ! {
     // Execute loop
     const STEP: u64 = 1000; // 1s
     loop {
-        Led::toggle(&mut led);
-        let led_state = led.is_on();
+        led.toggle().unwrap();
+        let led_state = led.is_set_high().unwrap();
         sprintln!("LED toggled. New state: {}", led_state);
         Timer::after_millis(STEP).await;
     }

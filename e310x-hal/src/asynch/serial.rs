@@ -34,8 +34,8 @@ fn on_irq<UART: UartX>(uart: &UART) {
     if uart.ie().read().rxwm().bit_is_set() && uart.ip().read().rxwm().bit_is_set() {
         // Wake the waker if it exists
         critical_section::with(|cs| {
-            let uartwaker = &mut UART_WAKERS.borrow_ref_mut(cs)[UART::UART_INDEX].0;
-            if let Some(waker) = uartwaker.take() {
+            let mut uartwaker = UART_WAKERS.borrow_ref_mut(cs);
+            if let Some(waker) = uartwaker[UART::UART_INDEX].0.take() {
                 waker.wake();
             }
         });
@@ -49,8 +49,8 @@ fn on_irq<UART: UartX>(uart: &UART) {
     if uart.ie().read().txwm().bit_is_set() && uart.ip().read().txwm().bit_is_set() {
         // Wake the waker if it exists
         critical_section::with(|cs| {
-            let uartwaker = &mut UART_WAKERS.borrow_ref_mut(cs)[UART::UART_INDEX].1;
-            if let Some(waker) = uartwaker.take() {
+            let mut uartwaker = UART_WAKERS.borrow_ref_mut(cs);
+            if let Some(waker) = uartwaker[UART::UART_INDEX].1.take() {
                 waker.wake();
             }
         });
@@ -82,8 +82,8 @@ impl<UART: UartX, PIN: RxPin<UART>> embedded_io_async::Read for Rx<UART, PIN> {
                 Err(nb::Error::WouldBlock) => {
                     // Register the waker for the UART
                     critical_section::with(|cs| {
-                        let uartwaker = &mut UART_WAKERS.borrow_ref_mut(cs)[UART::UART_INDEX].0;
-                        *uartwaker = Some(cx.waker().clone());
+                        let mut uartwaker = UART_WAKERS.borrow_ref_mut(cs);
+                        uartwaker[UART::UART_INDEX].0 = Some(cx.waker().clone());
                     });
                     //Enable interrupt for the UART
                     self.set_watermark(WatermarkValue::W0);
@@ -126,8 +126,8 @@ impl<UART: UartX, PIN: TxPin<UART>> embedded_io_async::Write for Tx<UART, PIN> {
             Err(nb::Error::WouldBlock) => {
                 // Register the waker for the UART
                 critical_section::with(|cs| {
-                    let uartwaker = &mut UART_WAKERS.borrow_ref_mut(cs)[UART::UART_INDEX].1;
-                    *uartwaker = Some(cx.waker().clone());
+                    let mut uartwaker = UART_WAKERS.borrow_ref_mut(cs);
+                    uartwaker[UART::UART_INDEX].1 = Some(cx.waker().clone());
                 });
                 //Enable interrupt for the UART
                 self.set_watermark(WatermarkValue::W7);
@@ -157,8 +157,8 @@ impl<UART: UartX, PIN: TxPin<UART>> embedded_io_async::Write for Tx<UART, PIN> {
                 flushed = true;
                 // Register the waker for the UART
                 critical_section::with(|cs| {
-                    let uartwaker = &mut UART_WAKERS.borrow_ref_mut(cs)[UART::UART_INDEX].1;
-                    *uartwaker = Some(cx.waker().clone());
+                    let mut uartwaker = UART_WAKERS.borrow_ref_mut(cs);
+                    uartwaker[UART::UART_INDEX].1 = Some(cx.waker().clone());
                 });
                 //Enable interrupt for the UART
                 self.set_watermark(WatermarkValue::W1);
