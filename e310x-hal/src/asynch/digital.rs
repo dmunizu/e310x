@@ -40,14 +40,7 @@ macro_rules! gpio_async {
         /// Interrupt handler for GPIO pins.
         fn on_irq(pin_n: usize) {
             let gpio_block = unsafe { Gpio0::steal() };
-
-            let high_ip = gpio_block.high_ip().read().bits();
-            let low_ip = gpio_block.low_ip().read().bits();
-            let rise_ip = gpio_block.rise_ip().read().bits();
-            let fall_ip = gpio_block.fall_ip().read().bits();
-            let ip = high_ip | low_ip | rise_ip | fall_ip;
             let pin_mask = 1 << pin_n;
-            let pin_pending = ip & pin_mask;
 
             // Disable the interrupt for the pin
             unsafe{
@@ -57,15 +50,13 @@ macro_rules! gpio_async {
                 gpio_block.fall_ie().modify(|r, w| w.bits(r.bits() &! pin_mask));
             }
 
-            // Wake the pin if its interrupt is pending
-            if pin_pending != 0 {
-                critical_section::with(|cs| {
-                    let mut pin_wakers = PIN_WAKERS.borrow_ref_mut(cs);
-                    if let Some(pinwaker) = pin_wakers[pin_n].take() {
-                        pinwaker.wake();
-                    }
-                });
-            }
+            // Wake the pin if possible
+            critical_section::with(|cs| {
+                let mut pin_wakers = PIN_WAKERS.borrow_ref_mut(cs);
+                if let Some(pinwaker) = pin_wakers[pin_n].take() {
+                    pinwaker.wake();
+                }
+            });
 
             // Clear pending pin interrupts
             unsafe{
