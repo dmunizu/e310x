@@ -71,12 +71,17 @@ async fn main(spawner: Spawner) {
     let rx = pins.pin16.into_iof0();
     let serial = Serial::new(p.UART0, (tx, rx), 115_200.bps(), clocks);
 
-    // Configure interrupts
+    // Set button interrupt source priority
     let plic = cp.plic;
+    let priorities = plic.priorities();
+    priorities.reset::<ExternalInterrupt>();
+    unsafe { serial.set_exti_priority(&plic, Priority::P1) };
+
+    // Enable interrupts
     let ctx = plic.ctx0();
     unsafe {
         ctx.enables().disable_all::<ExternalInterrupt>();
-        serial.enable_exti();
+        serial.enable_exti(&plic);
         ctx.threshold().set_threshold(Priority::P0);
         riscv::interrupt::enable();
         plic.enable();

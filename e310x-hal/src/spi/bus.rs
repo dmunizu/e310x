@@ -202,20 +202,20 @@ impl<SPI: SpiX, PINS> SpiBus<SPI, PINS> {
     ///
     /// # Safety
     /// Enabling an interrupt source can break mask-based critical sections.
-    pub unsafe fn enable_exti(&self) {
-        let ctx = unsafe { Plic::steal() }.ctx0();
+    pub unsafe fn enable_exti(&self, plic: &Plic) {
+        let ctx = plic.ctx0();
         ctx.enables().enable(SPI::INTERRUPT_SOURCE);
     }
 
     /// Disables the external interrupt source for the pin.
-    pub fn disable_exti(&self) {
-        let ctx = unsafe { Plic::steal() }.ctx0();
+    pub fn disable_exti(&self, plic: &Plic) {
+        let ctx = plic.ctx0();
         ctx.enables().disable(SPI::INTERRUPT_SOURCE);
     }
 
     /// Returns if the external interrupt source for the pin is enabled.
-    pub fn is_exti_enabled(&self) -> bool {
-        let ctx = unsafe { Plic::steal() }.ctx0();
+    pub fn is_exti_enabled(&self, plic: &Plic) -> bool {
+        let ctx = plic.ctx0();
         ctx.enables().is_enabled(SPI::INTERRUPT_SOURCE)
     }
 
@@ -224,14 +224,14 @@ impl<SPI: SpiX, PINS> SpiBus<SPI, PINS> {
     /// # Safety
     ///
     /// Changing the priority level can break priority-based critical sections.
-    pub unsafe fn set_exti_priority(&self, priority: Priority) {
-        let priorities = unsafe { Plic::steal() }.priorities();
+    pub unsafe fn set_exti_priority(&self, plic: &Plic, priority: Priority) {
+        let priorities = plic.priorities();
         priorities.set_priority(SPI::INTERRUPT_SOURCE, priority);
     }
 
     /// Returns the external interrupt source priority.
-    pub fn get_exti_priority(&self) -> Priority {
-        let priorities = unsafe { Plic::steal() }.priorities();
+    pub fn get_exti_priority(&self, plic: &Plic) -> Priority {
+        let priorities = plic.priorities();
         priorities.get_priority(SPI::INTERRUPT_SOURCE)
     }
 }

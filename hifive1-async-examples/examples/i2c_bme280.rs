@@ -51,12 +51,17 @@ async fn main(_spawner: Spawner) -> ! {
     let mut delay = Delay::new(mtimer);
     const STEP: u32 = 1000; // 1s
 
-    // Enable interrupts
+    // Set button interrupt source priority
     let plic = cp.plic;
+    let priorities = plic.priorities();
+    priorities.reset::<ExternalInterrupt>();
+    unsafe { i2c.set_exti_priority(&plic, Priority::P1) };
+
+    // Enable interrupts
     let ctx = plic.ctx0();
     unsafe {
         ctx.enables().disable_all::<ExternalInterrupt>();
-        i2c.enable_exti();
+        i2c.enable_exti(&plic);
         ctx.threshold().set_threshold(Priority::P0);
         riscv::interrupt::enable();
         plic.enable();

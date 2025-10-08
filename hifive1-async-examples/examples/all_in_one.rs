@@ -25,8 +25,8 @@ use hifive1::{
     hal::{
         DeviceResources,
         asynch::{delay::Delay, prelude::*, spi::SpiExclusiveDevice},
-        e310x::{Uart0, generic, i2c0, interrupt::Hart, qspi0},
-        gpio::{IOF0, Input, NoInvert, Output, PullUp, Regular, gpio0},
+        e310x::{Gpio0, Uart0, generic, i2c0, interrupt::Hart, qspi0},
+        gpio::{EventType, IOF0, Input, NoInvert, Output, PullUp, Regular, gpio0},
         i2c::{I2c, Speed},
         prelude::*,
         serial::{Rx, Serial, Tx},
@@ -273,6 +273,10 @@ async fn peripheral_config() -> (
     // Button pin (GPIO9) as pull-up input
     let button = pins.pin9.into_pull_up_input();
 
+    // Clear pending interrupts from previous states
+    Gpio0::disable_interrupts(EventType::All);
+    Gpio0::clear_pending_interrupts(EventType::All);
+
     // Configure MTIMER interrupt
     let mtimer = cp.clint.mtimer();
     mtimer.disable();
@@ -302,13 +306,22 @@ async fn peripheral_config() -> (
 
     // Configure interrupts
     let plic = cp.plic;
+    let priorities = plic.priorities();
+    priorities.reset::<ExternalInterrupt>();
+    unsafe {
+        button.set_exti_priority(&plic, Priority::P1);
+        serial.set_exti_priority(&plic, Priority::P1);
+        i2c.set_exti_priority(&plic, Priority::P1);
+        spi_bus.set_exti_priority(&plic, Priority::P1)
+    };
+
     let ctx = plic.ctx0();
     unsafe {
         ctx.enables().disable_all::<ExternalInterrupt>();
-        button.enable_exti();
-        serial.enable_exti();
-        spi_bus.enable_exti();
-        i2c.enable_exti();
+        button.enable_exti(&plic);
+        serial.enable_exti(&plic);
+        spi_bus.enable_exti(&plic);
+        i2c.enable_exti(&plic);
         ctx.threshold().set_threshold(Priority::P0);
         riscv::interrupt::enable();
         plic.enable();

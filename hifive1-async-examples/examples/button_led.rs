@@ -40,14 +40,14 @@ async fn main(_spawner: Spawner) -> ! {
     let plic = cp.plic;
     let priorities = plic.priorities();
     priorities.reset::<ExternalInterrupt>();
-    unsafe { button.set_exti_priority(Priority::P1) };
+    unsafe { button.set_exti_priority(&plic, Priority::P1) };
 
     // Enable GPIO9 interrupt in PLIC
     let ctx = plic.ctx0();
     unsafe {
         ctx.enables().disable_all::<ExternalInterrupt>();
         ctx.threshold().set_threshold(Priority::P0);
-        button.enable_exti();
+        button.enable_exti(&plic);
         riscv::interrupt::enable();
         plic.enable();
     };

@@ -162,22 +162,22 @@ impl<I2C: I2cX, PINS> I2c<I2C, PINS> {
     /// # Safety
     /// Enabling an interrupt source can break mask-based critical sections.
     #[inline]
-    pub unsafe fn enable_exti(&self) {
-        let ctx = unsafe { Plic::steal() }.ctx0();
+    pub unsafe fn enable_exti(&self, plic: &Plic) {
+        let ctx = plic.ctx0();
         ctx.enables().enable(ExternalInterrupt::I2C0);
     }
 
     /// Disables the external interrupt source for the pin.
     #[inline]
-    pub fn disable_exti(&self) {
-        let ctx = unsafe { Plic::steal() }.ctx0();
+    pub fn disable_exti(&self, plic: &Plic) {
+        let ctx = plic.ctx0();
         ctx.enables().disable(ExternalInterrupt::I2C0);
     }
 
     /// Returns if the external interrupt source for the pin is enabled.
     #[inline]
-    pub fn is_exti_enabled(&self) -> bool {
-        let ctx = unsafe { Plic::steal() }.ctx0();
+    pub fn is_exti_enabled(&self, plic: &Plic) -> bool {
+        let ctx = plic.ctx0();
         ctx.enables().is_enabled(ExternalInterrupt::I2C0)
     }
 
@@ -187,15 +187,15 @@ impl<I2C: I2cX, PINS> I2c<I2C, PINS> {
     ///
     /// Changing the priority level can break priority-based critical sections.
     #[inline]
-    pub unsafe fn set_exti_priority(&self, priority: Priority) {
-        let priorities = unsafe { Plic::steal() }.priorities();
+    pub unsafe fn set_exti_priority(&self, plic: &Plic, priority: Priority) {
+        let priorities = plic.priorities();
         priorities.set_priority(ExternalInterrupt::I2C0, priority);
     }
 
     /// Returns the external interrupt source priority.
     #[inline]
-    pub fn get_exti_priority(&self) -> Priority {
-        let priorities = unsafe { Plic::steal() }.priorities();
+    pub fn get_exti_priority(&self, plic: &Plic) -> Priority {
+        let priorities = plic.priorities();
         priorities.get_priority(ExternalInterrupt::I2C0)
     }
 

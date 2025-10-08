@@ -55,12 +55,17 @@ async fn main(_spawner: Spawner) -> ! {
     let spi_bus = SpiBus::new(p.QSPI1, (mosi, miso, sck, cs));
     let spi_cfg = SpiConfig::new(MODE_0, 1_000_000.hz(), &clocks);
 
-    // Enable interrupts
+    // Set button interrupt source priority
     let plic = cp.plic;
+    let priorities = plic.priorities();
+    priorities.reset::<ExternalInterrupt>();
+    unsafe { spi_bus.set_exti_priority(&plic, Priority::P1) };
+
+    // Enable interrupts
     let ctx = plic.ctx0();
     unsafe {
         ctx.enables().disable_all::<ExternalInterrupt>();
-        spi_bus.enable_exti();
+        spi_bus.enable_exti(&plic);
         ctx.threshold().set_threshold(Priority::P0);
         riscv::interrupt::enable();
         plic.enable();
