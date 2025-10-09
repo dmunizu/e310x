@@ -3,20 +3,18 @@ name = "hifive1-async-examples"
 version = "0.1.0"
 edition = "2024"
 
-[workspace]
-
 [dependencies]
 embassy-executor = { version = "0.7.0", features = ["arch-riscv32", "executor-thread"] } #embassy executor for async tasks
-critical-section = { version = "1.2.0" }
+critical-section = { workspace = true }
 # The embassy feature implements the asynch feature and embassy time, if you don't want embassy, only use asynch
-hifive1 = { path = "../hifive1", version = "0.13.0", features = ["board-redv", "embassy"] } # Change to your board
-riscv = { version = "0.14.0" }
-riscv-rt = { version = "0.15.0", features = ["single-hart"] }
+hifive1 = { path = "../hifive1", version = "0.13.0", features = ["board-hifive1-revb", "embassy"] } # Change to your board
+riscv = { workspace = true }
+riscv-rt = { workspace = true, features = [] }
 panic-halt = "1.0.0"
 semihosting = { version = "0.1",  features = ["stdio", "panic-handler"] }
-embassy-time = { version = "0.4.0" }
-embassy-sync = { version = "0.7.0" }
-embassy-futures = { version = "0.1.1"}
+embassy-time = { version = "0.5.0" }
+embassy-sync = { version = "0.7.2" }
+embassy-futures = { version = "0.1.2"}
 heapless = {version = "0.9.1"}
 
 #RTT dependencies
