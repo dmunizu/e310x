@@ -43,7 +43,7 @@ pub trait GpioExt {
     fn disable_interrupts(event: EventType);
 
     /// Clears the specified interrupt event pending flag for all the GPIO pins.
-    fn clear_pending_interrupts(event: EventType);
+    fn clear_interrupts(event: EventType);
 }
 
 /// Unknown mode (type state)
@@ -278,7 +278,7 @@ macro_rules! gpio {
                     }
                 }
 
-                fn clear_pending_interrupts(event: EventType) {
+                fn clear_interrupts(event: EventType) {
                     let p = Self::peripheral();
 
                     match event {

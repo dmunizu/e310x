@@ -32,9 +32,9 @@ async fn main(_spawner: Spawner) -> ! {
     // Button pin (GPIO9) as pull-up input
     let mut button = pins.pin9.into_pull_up_input();
 
-    // Clear pending interrupts from previous states
+    // Disable and clear pending GPIO interrupts from previous states
     Gpio0::disable_interrupts(EventType::All);
-    Gpio0::clear_pending_interrupts(EventType::All);
+    Gpio0::clear_interrupts(EventType::All);
 
     // Set button interrupt source priority
     let plic = cp.plic;
