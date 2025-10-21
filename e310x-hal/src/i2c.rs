@@ -174,7 +174,7 @@ impl<I2C: I2cX, PINS> I2c<I2C, PINS> {
         ctx.enables().disable(ExternalInterrupt::I2C0);
     }
 
-    /// Returns if the external interrupt source for the pin is enabled.
+    /// Returns whether the external interrupt source for the pin is enabled.
     #[inline]
     pub fn is_exti_enabled(&self, plic: &Plic) -> bool {
         let ctx = plic.ctx0();

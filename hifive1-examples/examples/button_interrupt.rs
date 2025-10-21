@@ -55,6 +55,11 @@ fn main() -> ! {
     );
 
     sprintln!("Configuring GPIOs...");
+    
+    // Disable and clear all GPIO interrupts
+    Gpio0::disable_interrupts(EventType::All);
+    Gpio0::clear_interrupts(EventType::All);
+    
     // Configure button pin (GPIO9) as pull-up input
     let button = pins.pin9.into_pull_up_input();
     // Configure blue LED pin (GPIO21) as inverted output
@@ -67,11 +72,8 @@ fn main() -> ! {
     priorities.reset::<ExternalInterrupt>();
     unsafe { priorities.set_priority(ExternalInterrupt::GPIO9, Priority::P1) };
 
-    // Disable and clear all GPIO interrupts
-    Gpio0::disable_interrupts(EventType::All);
-    Gpio0::clear_interrupts(EventType::All);
-    
     // Enable GPIO9 interrupt for both edges
+    unsafe { button.set_exti_priority(&plic, Priority::P1) };
     button.enable_interrupt(EventType::BothEdges);
 
     // Store button pin in a shared resource

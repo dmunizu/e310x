@@ -156,7 +156,7 @@ impl<UART: UartX, PIN: RxPin<UART>> Rx<UART, PIN> {
         ctx.enables().disable(UART::INTERRUPT_SOURCE);
     }
 
-    /// Returns if the external interrupt source for the pin is enabled.
+    /// Returns whether the external interrupt source for the pin is enabled.
     pub fn is_exti_enabled(&self, plic: &Plic) -> bool {
         let ctx = plic.ctx0();
         ctx.enables().is_enabled(UART::INTERRUPT_SOURCE)
@@ -304,7 +304,7 @@ impl<UART: UartX, PIN: TxPin<UART>> Tx<UART, PIN> {
         ctx.enables().disable(UART::INTERRUPT_SOURCE);
     }
 
-    /// Returns if the external interrupt source for the pin is enabled.
+    /// Returns whether the external interrupt source for the pin is enabled.
     pub fn is_exti_enabled(&self, plic: &Plic) -> bool {
         let ctx = plic.ctx0();
         ctx.enables().is_enabled(UART::INTERRUPT_SOURCE)
@@ -506,7 +506,7 @@ impl<UART: UartX, TX: TxPin<UART>, RX: RxPin<UART>> Serial<UART, TX, RX> {
         match comm_type {
             CommType::Tx => self.tx.is_interrupt_enabled(),
             CommType::Rx => self.rx.is_interrupt_enabled(),
-            CommType::TxRx => self.tx.is_interrupt_enabled() && self.rx.is_interrupt_enabled(),
+            CommType::TxRx => self.tx.is_interrupt_enabled() || self.rx.is_interrupt_enabled(),
         }
     }
 
@@ -516,7 +516,7 @@ impl<UART: UartX, TX: TxPin<UART>, RX: RxPin<UART>> Serial<UART, TX, RX> {
         match comm_type {
             CommType::Tx => self.tx.is_interrupt_pending(),
             CommType::Rx => self.rx.is_interrupt_pending(),
-            CommType::TxRx => self.tx.is_interrupt_pending() && self.rx.is_interrupt_pending(),
+            CommType::TxRx => self.tx.is_interrupt_pending() || self.rx.is_interrupt_pending(),
         }
     }
 
@@ -540,7 +540,7 @@ impl<UART: UartX, TX: TxPin<UART>, RX: RxPin<UART>> Serial<UART, TX, RX> {
         ctx.enables().disable(UART::INTERRUPT_SOURCE);
     }
 
-    /// Returns if the external interrupt source for the pin is enabled.
+    /// Returns whether the external interrupt source for the pin is enabled.
     pub fn is_exti_enabled(&self, plic: &Plic) -> bool {
         let ctx = plic.ctx0();
         ctx.enables().is_enabled(UART::INTERRUPT_SOURCE)

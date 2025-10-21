@@ -18,6 +18,10 @@ pub enum CommType {
     /// Reception
     Rx,
     /// Both transmission and reception
+    ///
+    /// # Note
+    /// In the methods that check if an interrupt is enabled or pending.
+    /// this event type works like an **any** operator between `Tx` and `Rx` events.
     TxRx,
 }
 
@@ -176,7 +180,7 @@ impl<SPI: SpiX, PINS> SpiBus<SPI, PINS> {
             CommType::Tx => self.spi.ie().read().txwm().bit_is_set(),
             CommType::Rx => self.spi.ie().read().rxwm().bit_is_set(),
             CommType::TxRx => {
-                self.spi.ie().read().txwm().bit_is_set() && self.spi.ie().read().rxwm().bit_is_set()
+                self.spi.ie().read().txwm().bit_is_set() || self.spi.ie().read().rxwm().bit_is_set()
             }
         }
     }
@@ -188,7 +192,7 @@ impl<SPI: SpiX, PINS> SpiBus<SPI, PINS> {
             CommType::Tx => self.spi.ip().read().txwm().bit_is_set(),
             CommType::Rx => self.spi.ip().read().rxwm().bit_is_set(),
             CommType::TxRx => {
-                self.spi.ip().read().txwm().bit_is_set() && self.spi.ip().read().rxwm().bit_is_set()
+                self.spi.ip().read().txwm().bit_is_set() || self.spi.ip().read().rxwm().bit_is_set()
             }
         }
     }
@@ -213,7 +217,7 @@ impl<SPI: SpiX, PINS> SpiBus<SPI, PINS> {
         ctx.enables().disable(SPI::INTERRUPT_SOURCE);
     }
 
-    /// Returns if the external interrupt source for the pin is enabled.
+    /// Returns whether the external interrupt source for the pin is enabled.
     pub fn is_exti_enabled(&self, plic: &Plic) -> bool {
         let ctx = plic.ctx0();
         ctx.enables().is_enabled(SPI::INTERRUPT_SOURCE)
