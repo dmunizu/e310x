@@ -8,7 +8,7 @@
 use embassy_executor::Spawner;
 use hifive1::{
     clock,
-    hal::{DeviceResources, asynch::prelude::*, e310x::Gpio0, gpio::EventType, prelude::*},
+    hal::{DeviceResources, asynch::prelude::*, gpio::EventType, prelude::*},
     sprintln,
 };
 extern crate panic_halt;
@@ -18,10 +18,14 @@ async fn main(_spawner: Spawner) -> ! {
     let dr = DeviceResources::take().unwrap();
     let cp = dr.core_peripherals;
     let p = dr.peripherals;
-    let pins: hifive1::hal::device::DeviceGpioPins = dr.pins;
+    let pins = dr.pins;
 
     // Configure clocks
     let clocks = clock::configure(p.PRCI, p.AONCLK, 320.mhz().into());
+
+    // Disable and clear pending GPIO interrupts from previous states
+    pins.disable_interrupts(EventType::All);
+    pins.clear_interrupts(EventType::All);
 
     //Blinking LED
     let mut led = pins.pin10.into_output();
@@ -31,11 +35,6 @@ async fn main(_spawner: Spawner) -> ! {
 
     // Button pin (GPIO9) as pull-up input
     let mut button = pins.pin9.into_pull_up_input();
-
-    // Disable and clear pending GPIO interrupts from previous states
-    Gpio0::disable_interrupts(EventType::All);
-    Gpio0::clear_interrupts(EventType::All);
-
     // Set button interrupt source priority
     let plic = cp.plic;
     let priorities = plic.priorities();

@@ -25,7 +25,7 @@ use hifive1::{
     hal::{
         DeviceResources,
         asynch::{delay::Delay, prelude::*, spi::SpiExclusiveDevice},
-        e310x::{Gpio0, Uart0, generic, i2c0, interrupt::Hart, qspi0},
+        e310x::{Uart0, generic, i2c0, interrupt::Hart, qspi0},
         gpio::{EventType, IOF0, Input, NoInvert, Output, PullUp, Regular, gpio0},
         i2c::{I2c, Speed},
         prelude::*,
@@ -265,6 +265,10 @@ async fn peripheral_config() -> (
     // Configure clocks
     let clocks = clock::configure(p.PRCI, p.AONCLK, 320.mhz().into());
 
+    // Disable and clear pending GPIO interrupts from previous states
+    pins.disable_interrupts(EventType::All);
+    pins.clear_interrupts(EventType::All);
+
     //Blinking LED
     let led: hifive1::hal::gpio::gpio0::Pin10<
         hifive1::hal::gpio::Output<hifive1::hal::gpio::Regular<NoInvert>>,
@@ -272,10 +276,6 @@ async fn peripheral_config() -> (
 
     // Button pin (GPIO9) as pull-up input
     let button = pins.pin9.into_pull_up_input();
-
-    // Disable and clear pending GPIO interrupts from previous states
-    Gpio0::disable_interrupts(EventType::All);
-    Gpio0::clear_interrupts(EventType::All);
 
     // Configure MTIMER interrupt
     let mtimer = cp.clint.mtimer();
