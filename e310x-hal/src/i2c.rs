@@ -103,6 +103,53 @@ impl<I2C, PINS> I2c<I2C, PINS> {
 }
 
 impl<I2C: I2cX, PINS> I2c<I2C, PINS> {
+    /// Enables the external interrupt source for the I2C.
+    ///
+    /// # Note
+    /// This function enables the external interrupt source in the PLIC,
+    /// but does not enable the PLIC peripheral itself. To enable the plic peripheral
+    /// you must call [`Plic::enable()`](riscv-peripheral::plic::enables::ENABLES::enable).
+    ///
+    /// # Safety
+    /// Enabling an interrupt source can break mask-based critical sections.
+    #[inline]
+    pub unsafe fn enable_exti(&mut self, plic: &Plic) {
+        let ctx = plic.ctx0();
+        ctx.enables().enable(ExternalInterrupt::I2C0);
+    }
+
+    /// Disables the external interrupt source for the pin.
+    #[inline]
+    pub fn disable_exti(&mut self, plic: &Plic) {
+        let ctx = plic.ctx0();
+        ctx.enables().disable(ExternalInterrupt::I2C0);
+    }
+
+    /// Returns whether the external interrupt source for the pin is enabled.
+    #[inline]
+    pub fn is_exti_enabled(&self, plic: &Plic) -> bool {
+        let ctx = plic.ctx0();
+        ctx.enables().is_enabled(ExternalInterrupt::I2C0)
+    }
+
+    /// Sets the external interrupt source priority.
+    ///
+    /// # Safety
+    ///
+    /// Changing the priority level can break priority-based critical sections.
+    #[inline]
+    pub unsafe fn set_exti_priority(&mut self, plic: &Plic, priority: Priority) {
+        let priorities = plic.priorities();
+        priorities.set_priority(ExternalInterrupt::I2C0, priority);
+    }
+
+    /// Returns the external interrupt source priority.
+    #[inline]
+    pub fn get_exti_priority(&self, plic: &Plic) -> Priority {
+        let priorities = plic.priorities();
+        priorities.get_priority(ExternalInterrupt::I2C0)
+    }
+
     /// Enable the I2C interrupt bit in the control register.
     ///
     /// # Note
@@ -137,7 +184,7 @@ impl<I2C: I2cX, PINS> I2c<I2C, PINS> {
 
     /// Clear the interrupt flag in the control register.
     #[inline]
-    pub fn clear_interrupt(&self) {
+    pub fn clear_interrupt(&mut self) {
         self.i2c.cr().write(|w| w.iack().set_bit());
     }
 
@@ -152,60 +199,13 @@ impl<I2C: I2cX, PINS> I2c<I2C, PINS> {
         self.i2c.ctr().read().ien().bit_is_set()
     }
 
-    /// Enables the external interrupt source for the I2C.
-    ///
-    /// # Note
-    /// This function enables the external interrupt source in the PLIC,
-    /// but does not enable the PLIC peripheral itself. To enable the plic peripheral
-    /// you must call [`Plic::enable()`](riscv-peripheral::plic::enables::ENABLES::enable).
-    ///
-    /// # Safety
-    /// Enabling an interrupt source can break mask-based critical sections.
-    #[inline]
-    pub unsafe fn enable_exti(&self, plic: &Plic) {
-        let ctx = plic.ctx0();
-        ctx.enables().enable(ExternalInterrupt::I2C0);
-    }
-
-    /// Disables the external interrupt source for the pin.
-    #[inline]
-    pub fn disable_exti(&self, plic: &Plic) {
-        let ctx = plic.ctx0();
-        ctx.enables().disable(ExternalInterrupt::I2C0);
-    }
-
-    /// Returns whether the external interrupt source for the pin is enabled.
-    #[inline]
-    pub fn is_exti_enabled(&self, plic: &Plic) -> bool {
-        let ctx = plic.ctx0();
-        ctx.enables().is_enabled(ExternalInterrupt::I2C0)
-    }
-
-    /// Sets the external interrupt source priority.
-    ///
-    /// # Safety
-    ///
-    /// Changing the priority level can break priority-based critical sections.
-    #[inline]
-    pub unsafe fn set_exti_priority(&self, plic: &Plic, priority: Priority) {
-        let priorities = plic.priorities();
-        priorities.set_priority(ExternalInterrupt::I2C0, priority);
-    }
-
-    /// Returns the external interrupt source priority.
-    #[inline]
-    pub fn get_exti_priority(&self, plic: &Plic) -> Priority {
-        let priorities = plic.priorities();
-        priorities.get_priority(ExternalInterrupt::I2C0)
-    }
-
     /// Read the status register.
     pub(crate) fn read_sr(&self) -> i2c0::sr::R {
         self.i2c.sr().read()
     }
 
     /// Reset the I2C peripheral.
-    pub(crate) fn reset(&self) {
+    pub(crate) fn reset(&mut self) {
         self.clear_interrupt();
     }
 

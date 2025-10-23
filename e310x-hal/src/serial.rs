@@ -88,6 +88,48 @@ impl<UART, PIN> Rx<UART, PIN> {
 }
 
 impl<UART: UartX, PIN: RxPin<UART>> Rx<UART, PIN> {
+    /// Enables the external interrupt source for the UART.
+    ///
+    /// # Note
+    /// This function enables the external interrupt source in the PLIC,
+    /// but does not enable the PLIC peripheral itself. To enable the plic peripheral
+    /// you must call [`Plic::enable()`](riscv-peripheral::plic::enables::ENABLES::enable).
+    ///
+    /// # Safety
+    /// Enabling an interrupt source can break mask-based critical sections.
+    pub unsafe fn enable_exti(&mut self, plic: &Plic) {
+        let ctx = plic.ctx0();
+        ctx.enables().enable(UART::INTERRUPT_SOURCE);
+    }
+
+    /// Disables the external interrupt source for the pin.
+    pub fn disable_exti(&mut self, plic: &Plic) {
+        let ctx = plic.ctx0();
+        ctx.enables().disable(UART::INTERRUPT_SOURCE);
+    }
+
+    /// Returns whether the external interrupt source for the pin is enabled.
+    pub fn is_exti_enabled(&self, plic: &Plic) -> bool {
+        let ctx = plic.ctx0();
+        ctx.enables().is_enabled(UART::INTERRUPT_SOURCE)
+    }
+
+    /// Sets the external interrupt source priority.
+    ///
+    /// # Safety
+    ///
+    /// Changing the priority level can break priority-based critical sections.
+    pub unsafe fn set_exti_priority(&mut self, plic: &Plic, priority: Priority) {
+        let priorities = plic.priorities();
+        priorities.set_priority(UART::INTERRUPT_SOURCE, priority);
+    }
+
+    /// Returns the external interrupt source priority.
+    pub fn get_exti_priority(&self, plic: &Plic) -> Priority {
+        let priorities = plic.priorities();
+        priorities.get_priority(UART::INTERRUPT_SOURCE)
+    }
+
     /// Enable the UART reception interrupt bit in the control register.
     ///
     /// # Note
@@ -134,47 +176,6 @@ impl<UART: UartX, PIN: RxPin<UART>> Rx<UART, PIN> {
     /// Returns true if the interrupt flag is set.
     pub fn is_interrupt_pending(&self) -> bool {
         self.uart.ip().read().rxwm().bit_is_set()
-    }
-
-    /// Enables the external interrupt source for the UART.
-    ///
-    /// # Note
-    /// This function enables the external interrupt source in the PLIC,
-    /// but does not enable the PLIC peripheral itself. To enable the plic peripheral
-    /// you must call [`Plic::enable()`](riscv-peripheral::plic::enables::ENABLES::enable).
-    ///
-    /// # Safety
-    /// Enabling an interrupt source can break mask-based critical sections.
-    pub unsafe fn enable_exti(&self, plic: &Plic) {
-        let ctx = plic.ctx0();
-        ctx.enables().enable(UART::INTERRUPT_SOURCE);
-    }
-
-    /// Disables the external interrupt source for the pin.
-    pub fn disable_exti(&self, plic: &Plic) {
-        let ctx = plic.ctx0();
-        ctx.enables().disable(UART::INTERRUPT_SOURCE);
-    }
-
-    /// Returns whether the external interrupt source for the pin is enabled.
-    pub fn is_exti_enabled(&self, plic: &Plic) -> bool {
-        let ctx = plic.ctx0();
-        ctx.enables().is_enabled(UART::INTERRUPT_SOURCE)
-    }
-
-    /// Sets the external interrupt source priority.
-    ///
-    /// # Safety
-    ///
-    /// Changing the priority level can break priority-based critical sections.
-    pub unsafe fn set_exti_priority(&self, plic: &Plic, priority: Priority) {
-        let priorities = plic.priorities();
-        priorities.set_priority(UART::INTERRUPT_SOURCE, priority);
-    }
-    /// Returns the external interrupt source priority.
-    pub fn get_exti_priority(&self, plic: &Plic) -> Priority {
-        let priorities = plic.priorities();
-        priorities.get_priority(UART::INTERRUPT_SOURCE)
     }
 }
 
@@ -235,6 +236,47 @@ impl<UART, PIN> Tx<UART, PIN> {
 }
 
 impl<UART: UartX, PIN: TxPin<UART>> Tx<UART, PIN> {
+    /// Enables the external interrupt source for the UART.
+    ///
+    /// # Note
+    /// This function enables the external interrupt source in the PLIC,
+    /// but does not enable the PLIC peripheral itself. To enable the plic peripheral
+    /// you must call [`Plic::enable()`](riscv-peripheral::plic::enables::ENABLES::enable).
+    ///
+    /// # Safety
+    /// Enabling an interrupt source can break mask-based critical sections.
+    pub unsafe fn enable_exti(&mut self, plic: &Plic) {
+        let ctx = plic.ctx0();
+        ctx.enables().enable(UART::INTERRUPT_SOURCE);
+    }
+
+    /// Disables the external interrupt source for the pin.
+    pub fn disable_exti(&mut self, plic: &Plic) {
+        let ctx = plic.ctx0();
+        ctx.enables().disable(UART::INTERRUPT_SOURCE);
+    }
+
+    /// Returns whether the external interrupt source for the pin is enabled.
+    pub fn is_exti_enabled(&self, plic: &Plic) -> bool {
+        let ctx = plic.ctx0();
+        ctx.enables().is_enabled(UART::INTERRUPT_SOURCE)
+    }
+
+    /// Sets the external interrupt source priority.
+    ///
+    /// # Safety
+    ///
+    /// Changing the priority level can break priority-based critical sections.
+    pub unsafe fn set_exti_priority(&mut self, plic: &Plic, priority: Priority) {
+        let priorities = plic.priorities();
+        priorities.set_priority(UART::INTERRUPT_SOURCE, priority);
+    }
+    /// Returns the external interrupt source priority.
+    pub fn get_exti_priority(&self, plic: &Plic) -> Priority {
+        let priorities = plic.priorities();
+        priorities.get_priority(UART::INTERRUPT_SOURCE)
+    }
+
     /// Enable the UART transmission interrupt bit in the control register.
     ///
     /// # Note
@@ -282,47 +324,6 @@ impl<UART: UartX, PIN: TxPin<UART>> Tx<UART, PIN> {
     /// Returns true if the interrupt flag is set.
     pub fn is_interrupt_pending(&self) -> bool {
         self.uart.ip().read().txwm().bit_is_set()
-    }
-
-    /// Enables the external interrupt source for the UART.
-    ///
-    /// # Note
-    /// This function enables the external interrupt source in the PLIC,
-    /// but does not enable the PLIC peripheral itself. To enable the plic peripheral
-    /// you must call [`Plic::enable()`](riscv-peripheral::plic::enables::ENABLES::enable).
-    ///
-    /// # Safety
-    /// Enabling an interrupt source can break mask-based critical sections.
-    pub unsafe fn enable_exti(&self, plic: &Plic) {
-        let ctx = plic.ctx0();
-        ctx.enables().enable(UART::INTERRUPT_SOURCE);
-    }
-
-    /// Disables the external interrupt source for the pin.
-    pub fn disable_exti(&self, plic: &Plic) {
-        let ctx = plic.ctx0();
-        ctx.enables().disable(UART::INTERRUPT_SOURCE);
-    }
-
-    /// Returns whether the external interrupt source for the pin is enabled.
-    pub fn is_exti_enabled(&self, plic: &Plic) -> bool {
-        let ctx = plic.ctx0();
-        ctx.enables().is_enabled(UART::INTERRUPT_SOURCE)
-    }
-
-    /// Sets the external interrupt source priority.
-    ///
-    /// # Safety
-    ///
-    /// Changing the priority level can break priority-based critical sections.
-    pub unsafe fn set_exti_priority(&self, plic: &Plic, priority: Priority) {
-        let priorities = plic.priorities();
-        priorities.set_priority(UART::INTERRUPT_SOURCE, priority);
-    }
-    /// Returns the external interrupt source priority.
-    pub fn get_exti_priority(&self, plic: &Plic) -> Priority {
-        let priorities = plic.priorities();
-        priorities.get_priority(UART::INTERRUPT_SOURCE)
     }
 }
 
@@ -454,6 +455,47 @@ impl<UART: UartX, TX: TxPin<UART>, RX: RxPin<UART>> Serial<UART, TX, RX> {
 }
 
 impl<UART: UartX, TX: TxPin<UART>, RX: RxPin<UART>> Serial<UART, TX, RX> {
+    /// Enables the external interrupt source for the UART.
+    ///
+    /// # Note
+    /// This function enables the external interrupt source in the PLIC,
+    /// but does not enable the PLIC peripheral itself. To enable the plic peripheral
+    /// you must call [`Plic::enable()`](riscv-peripheral::plic::enables::ENABLES::enable).
+    ///
+    /// # Safety
+    /// Enabling an interrupt source can break mask-based critical sections.
+    pub unsafe fn enable_exti(&mut self, plic: &Plic) {
+        let ctx = plic.ctx0();
+        ctx.enables().enable(UART::INTERRUPT_SOURCE);
+    }
+
+    /// Disables the external interrupt source for the pin.
+    pub fn disable_exti(&mut self, plic: &Plic) {
+        let ctx = plic.ctx0();
+        ctx.enables().disable(UART::INTERRUPT_SOURCE);
+    }
+
+    /// Returns whether the external interrupt source for the pin is enabled.
+    pub fn is_exti_enabled(&self, plic: &Plic) -> bool {
+        let ctx = plic.ctx0();
+        ctx.enables().is_enabled(UART::INTERRUPT_SOURCE)
+    }
+
+    /// Sets the external interrupt source priority.
+    ///
+    /// # Safety
+    ///
+    /// Changing the priority level can break priority-based critical sections.
+    pub unsafe fn set_exti_priority(&mut self, plic: &Plic, priority: Priority) {
+        let priorities = plic.priorities();
+        priorities.set_priority(UART::INTERRUPT_SOURCE, priority);
+    }
+    /// Returns the external interrupt source priority.
+    pub fn get_exti_priority(&self, plic: &Plic) -> Priority {
+        let priorities = plic.priorities();
+        priorities.get_priority(UART::INTERRUPT_SOURCE)
+    }
+
     /// Enable the UART transmission interrupt bit in the control register.
     ///
     /// # Note
@@ -518,47 +560,6 @@ impl<UART: UartX, TX: TxPin<UART>, RX: RxPin<UART>> Serial<UART, TX, RX> {
             CommType::Rx => self.rx.is_interrupt_pending(),
             CommType::TxRx => self.tx.is_interrupt_pending() || self.rx.is_interrupt_pending(),
         }
-    }
-
-    /// Enables the external interrupt source for the UART.
-    ///
-    /// # Note
-    /// This function enables the external interrupt source in the PLIC,
-    /// but does not enable the PLIC peripheral itself. To enable the plic peripheral
-    /// you must call [`Plic::enable()`](riscv-peripheral::plic::enables::ENABLES::enable).
-    ///
-    /// # Safety
-    /// Enabling an interrupt source can break mask-based critical sections.
-    pub unsafe fn enable_exti(&self, plic: &Plic) {
-        let ctx = plic.ctx0();
-        ctx.enables().enable(UART::INTERRUPT_SOURCE);
-    }
-
-    /// Disables the external interrupt source for the pin.
-    pub fn disable_exti(&self, plic: &Plic) {
-        let ctx = plic.ctx0();
-        ctx.enables().disable(UART::INTERRUPT_SOURCE);
-    }
-
-    /// Returns whether the external interrupt source for the pin is enabled.
-    pub fn is_exti_enabled(&self, plic: &Plic) -> bool {
-        let ctx = plic.ctx0();
-        ctx.enables().is_enabled(UART::INTERRUPT_SOURCE)
-    }
-
-    /// Sets the external interrupt source priority.
-    ///
-    /// # Safety
-    ///
-    /// Changing the priority level can break priority-based critical sections.
-    pub unsafe fn set_exti_priority(&self, plic: &Plic, priority: Priority) {
-        let priorities = plic.priorities();
-        priorities.set_priority(UART::INTERRUPT_SOURCE, priority);
-    }
-    /// Returns the external interrupt source priority.
-    pub fn get_exti_priority(&self, plic: &Plic) -> Priority {
-        let priorities = plic.priorities();
-        priorities.get_priority(UART::INTERRUPT_SOURCE)
     }
 }
 

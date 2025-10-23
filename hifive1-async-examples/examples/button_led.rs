@@ -18,7 +18,7 @@ async fn main(_spawner: Spawner) -> ! {
     let dr = DeviceResources::take().unwrap();
     let cp = dr.core_peripherals;
     let p = dr.peripherals;
-    let pins = dr.pins;
+    let mut pins = dr.pins;
 
     // Configure clocks
     let clocks = clock::configure(p.PRCI, p.AONCLK, 320.mhz().into());

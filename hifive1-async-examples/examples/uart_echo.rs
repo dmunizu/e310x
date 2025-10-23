@@ -69,7 +69,7 @@ async fn main(spawner: Spawner) {
     // Configure UART
     let tx = pins.pin17.into_iof0();
     let rx = pins.pin16.into_iof0();
-    let serial = Serial::new(p.UART0, (tx, rx), 115_200.bps(), clocks);
+    let mut serial = Serial::new(p.UART0, (tx, rx), 115_200.bps(), clocks);
 
     // Set button interrupt source priority
     let plic = cp.plic;

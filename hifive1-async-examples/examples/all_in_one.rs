@@ -260,7 +260,7 @@ async fn peripheral_config() -> (
     let dr = DeviceResources::take().unwrap();
     let p = dr.peripherals;
     let cp = dr.core_peripherals;
-    let pins = dr.pins;
+    let mut pins = dr.pins;
 
     // Configure clocks
     let clocks = clock::configure(p.PRCI, p.AONCLK, 320.mhz().into());
@@ -275,7 +275,7 @@ async fn peripheral_config() -> (
     > = pins.pin10.into_output();
 
     // Button pin (GPIO9) as pull-up input
-    let button = pins.pin9.into_pull_up_input();
+    let mut button = pins.pin9.into_pull_up_input();
 
     // Configure MTIMER interrupt
     let mtimer = cp.clint.mtimer();
@@ -289,12 +289,12 @@ async fn peripheral_config() -> (
     // Configure UART
     let tx = pins.pin17.into_iof0();
     let rx = pins.pin16.into_iof0();
-    let serial = Serial::new(p.UART0, (tx, rx), 115_200.bps(), clocks);
+    let mut serial = Serial::new(p.UART0, (tx, rx), 115_200.bps(), clocks);
 
     // I2C configuration
     let sda = pins.pin12.into_iof0();
     let scl = pins.pin13.into_iof0();
-    let i2c = I2c::new(p.I2C0, sda, scl, Speed::Normal, clocks);
+    let mut i2c = I2c::new(p.I2C0, sda, scl, Speed::Normal, clocks);
 
     // SPI configuration
     let sck = pins.pin5.into_iof0();

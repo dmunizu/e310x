@@ -40,7 +40,7 @@ async fn main(_spawner: Spawner) -> ! {
     // I2C configuration
     let sda = pins.pin12.into_iof0();
     let scl = pins.pin13.into_iof0();
-    let i2c = I2c::new(p.I2C0, sda, scl, Speed::Normal, clocks);
+    let mut i2c = I2c::new(p.I2C0, sda, scl, Speed::Normal, clocks);
 
     // Get the MTIMER peripheral from CLINT
     let mtimer = cp.clint.mtimer();
