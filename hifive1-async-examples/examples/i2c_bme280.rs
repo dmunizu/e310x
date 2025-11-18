@@ -7,17 +7,17 @@
 
 use embassy_executor::Spawner;
 use embedded_devices::devices::bosch::bme280::registers::{IIRFilter, Oversampling};
-use embedded_devices::devices::bosch::bme280::{BME280Async, Configuration, address::Address};
+use embedded_devices::devices::bosch::bme280::{address::Address, BME280Async, Configuration};
 use embedded_devices::sensor::OneshotSensorAsync;
 use hifive1::{
     clock,
     hal::{
-        DeviceResources,
         asynch::delay::Delay,
         asynch::prelude::*,
         e310x::interrupt::Hart,
         i2c::{I2c, Speed},
         prelude::*,
+        DeviceResources,
     },
     sprintln,
 };

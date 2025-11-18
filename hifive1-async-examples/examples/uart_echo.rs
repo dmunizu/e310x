@@ -8,15 +8,15 @@ use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, channel::Channe
 use hifive1::{
     clock,
     hal::{
-        DeviceResources,
         asynch::prelude::*,
         e310x::Uart0,
         gpio::{
-            IOF0, NoInvert,
             gpio0::{Pin16, Pin17},
+            NoInvert, IOF0,
         },
         prelude::*,
         serial::{Rx, Serial, Tx},
+        DeviceResources,
     },
 };
 extern crate panic_halt;

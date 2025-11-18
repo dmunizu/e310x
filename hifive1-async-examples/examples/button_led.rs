@@ -8,7 +8,7 @@
 use embassy_executor::Spawner;
 use hifive1::{
     clock,
-    hal::{DeviceResources, asynch::prelude::*, gpio::EventType, prelude::*},
+    hal::{asynch::prelude::*, gpio::EventType, prelude::*, DeviceResources},
     sprintln,
 };
 extern crate panic_halt;

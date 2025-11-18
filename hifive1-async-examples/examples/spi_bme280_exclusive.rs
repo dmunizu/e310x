@@ -12,12 +12,12 @@ use embedded_devices::sensor::OneshotSensorAsync;
 use hifive1::{
     clock,
     hal::{
-        DeviceResources,
         asynch::delay::Delay,
         asynch::prelude::*,
         e310x::interrupt::Hart,
         prelude::*,
-        spi::{MODE_0, SpiBus, SpiConfig},
+        spi::{SpiBus, SpiConfig, MODE_0},
+        DeviceResources,
     },
     sprintln,
 };

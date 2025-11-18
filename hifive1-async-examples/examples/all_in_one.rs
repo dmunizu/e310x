@@ -16,21 +16,21 @@ use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, mutex::Mutex, s
 use embassy_time::Timer;
 use embedded_devices::devices::bosch::bme280::{
     registers::{IIRFilter, Oversampling},
-    {BME280Async, Configuration, address::Address},
+    {address::Address, BME280Async, Configuration},
 };
 use embedded_devices::sensor::OneshotSensorAsync;
 use heapless::String;
 use hifive1::{
     clock,
     hal::{
-        DeviceResources,
         asynch::{delay::Delay, prelude::*, spi::SpiExclusiveDevice},
-        e310x::{Uart0, generic, i2c0, interrupt::Hart, qspi0},
-        gpio::{EventType, IOF0, Input, NoInvert, Output, PullUp, Regular, gpio0},
+        e310x::{generic, i2c0, interrupt::Hart, qspi0, Uart0},
+        gpio::{gpio0, EventType, Input, NoInvert, Output, PullUp, Regular, IOF0},
         i2c::{I2c, Speed},
         prelude::*,
         serial::{Rx, Serial, Tx},
-        spi::{MODE_0, SpiBus, SpiConfig},
+        spi::{SpiBus, SpiConfig, MODE_0},
+        DeviceResources,
     },
 };
 use uom::si::{ratio::percent, thermodynamic_temperature::degree_celsius};

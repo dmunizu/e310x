@@ -9,7 +9,7 @@ use embassy_executor::Spawner;
 use embassy_time::Timer;
 use hifive1::{
     clock,
-    hal::{DeviceResources, e310x::interrupt::Hart, prelude::*},
+    hal::{e310x::interrupt::Hart, prelude::*, DeviceResources},
     sprintln,
 };
 extern crate panic_halt;
