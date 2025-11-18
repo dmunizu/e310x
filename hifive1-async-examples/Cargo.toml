@@ -1,10 +1,10 @@
 [package]
 name = "hifive1-async-examples"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
-embassy-executor = { version = "0.7.0", features = ["arch-riscv32", "executor-thread"] } #embassy executor for async tasks
+embassy-executor = { version = "0.9.1", features = ["arch-riscv32", "executor-thread"] } #embassy executor for async tasks
 critical-section = { workspace = true }
 # The embassy feature implements the asynch feature and embassy time, if you don't want embassy, only use asynch
 hifive1 = { path = "../hifive1", version = "0.13.0", features = ["board-hifive1-revb", "embassy"] } # Change to your board
@@ -15,14 +15,14 @@ semihosting = { version = "0.1",  features = ["stdio", "panic-handler"] }
 embassy-time = { version = "0.5.0" }
 embassy-sync = { version = "0.7.2" }
 embassy-futures = { version = "0.1.2"}
-heapless = {version = "0.9.1"}
+heapless = {version = "0.9.2"}
 
 #RTT dependencies
-rtt-target = "0.6.1"
+rtt-target = "0.6.2"
 panic-rtt-target = "0.2.0"
 
 # Specific devices
-embedded-devices = { version="0.10.1", features = ["async", "bosch-bme280"] }
+embedded-devices = { version="0.10.2", features = ["async", "bosch-bme280"] }
 uom = {version = "0.37.0", default-features = false, features = ["f32", "si"]}
 [features]
 v-trap = ["hifive1/v-trap"]
