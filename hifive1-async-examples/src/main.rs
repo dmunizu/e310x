@@ -10,7 +10,7 @@
 #![no_main]
 
 use hifive1::{
-    hal::{DeviceResources, prelude::*},
+    hal::{prelude::*, DeviceResources},
     pin, sprintln,
 };
 
