@@ -15,6 +15,7 @@ macro_rules! gpio_async {
         use crate::gpio::*;
         use crate::gpio::gpio0::*;
         use e310x::$GPIOX;
+        use e310x::interrupt::ExternalInterrupt;
         use embedded_hal::digital::{Error, ErrorKind, ErrorType, InputPin};
         use embedded_hal_async::digital::Wait;
 
@@ -38,8 +39,9 @@ macro_rules! gpio_async {
         }
 
         /// Interrupt handler for GPIO pins.
+        #[inline]
         fn on_irq(pin_n: usize) {
-            let gpio_block = unsafe { Gpio0::steal() };
+            let gpio_block = unsafe { $GPIOX::steal() };
             let pin_mask = 1 << pin_n;
 
             // Disable the interrupt for the pin
@@ -231,7 +233,7 @@ macro_rules! gpio_async {
             }
 
             /// Pin Interrupt Handler
-            #[riscv_rt::external_interrupt(e310x::interrupt::ExternalInterrupt::$handle)]
+            #[riscv_rt::external_interrupt(ExternalInterrupt::$handle)]
             fn $pxi() {
                 on_irq($i);
             }
